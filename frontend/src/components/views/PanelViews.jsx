@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check, X, Zap, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { Shell } from "./ModuleViews";
 import { Reveal } from "../landing/Reveal";
 import { AreaTrend, PnlBars, growthData } from "../landing/charts";
@@ -646,6 +647,8 @@ export function MarketView({ onBack }) {
           <NiftyStocksBoard compact />
         </Reveal>
         <Reveal className="min-w-0 flex-1">
+        <div className="space-y-6">
+        <OiChart />
         <div className="rounded-2xl border border-edge bg-white p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
@@ -712,6 +715,7 @@ export function MarketView({ onBack }) {
               );
             })}
           </div>
+        </div>
         </div>
         </Reveal>
       </div>
@@ -1037,5 +1041,45 @@ export function OiView({ onBack }) {
         Percentages are randomly generated demo data for the test model and do not represent real trader positioning.
       </p>
     </Shell>
+  );
+}
+
+export function OiChart() {
+  const data = INSTRUMENTS.map((m) => {
+    const support = 30 + (hashOf(m.name) % 41);
+    return { name: m.name, support, resistance: 100 - support };
+  });
+  return (
+    <div className="rounded-2xl border border-edge bg-white p-6" data-testid="oi-chart">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">OI · Support vs Resistance</p>
+        <div className="flex items-center gap-3 font-mono text-[10px] font-bold">
+          <span className="inline-flex items-center gap-1.5 text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Support %</span>
+          <span className="inline-flex items-center gap-1.5 text-rose-500"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Resistance %</span>
+        </div>
+      </div>
+      <div className="mt-4" style={{ height: data.length * 32 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }} barCategoryGap="28%">
+            <XAxis type="number" domain={[0, 100]} hide />
+            <YAxis
+              type="category" dataKey="name" width={118}
+              tick={{ fontSize: 9, fontFamily: "'JetBrains Mono', monospace", fill: "#6B7280", fontWeight: 600 }}
+              axisLine={false} tickLine={false}
+            />
+            <Tooltip
+              cursor={{ fill: "rgba(10,15,28,0.04)" }}
+              contentStyle={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, borderRadius: 10, border: "1px solid #E5E7EB" }}
+              formatter={(v, k) => [`${v}%`, k === "support" ? "Support" : "Resistance"]}
+            />
+            <Bar dataKey="support" stackId="oi" fill="#00D084" isAnimationActive radius={[4, 0, 0, 4]} />
+            <Bar dataKey="resistance" stackId="oi" fill="#F43F5E" isAnimationActive radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="mt-3 text-[11px] leading-relaxed text-slate">
+        Demo data — percent of traders positioned at support (green) versus resistance (red) for each market.
+      </p>
+    </div>
   );
 }
