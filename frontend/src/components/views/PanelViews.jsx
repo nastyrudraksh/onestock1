@@ -366,6 +366,8 @@ const INSTRUMENTS = [
   { name: "BANK NIFTY FUTURE", px: "51,388.00", chg: "+1.05%" },
   { name: "SENSEX", px: "81,506.20", chg: "+0.61%" },
   { name: "SENSEX FUTURE", px: "81,842.75", chg: "+0.58%" },
+  { name: "FINNIFTY OPTION", px: "22,564.10", chg: "-0.21%" },
+  { name: "FINNIFTY FUTURE", px: "22,835.45", chg: "+0.33%" },
   { name: "MIDCAP", px: "58,412.40", chg: "-0.22%" },
   { name: "MIDCAP FUTURE", px: "58,631.10", chg: "-0.18%" },
   { name: "BTC", px: "1,04,82,300", chg: "+2.14%" },
@@ -628,81 +630,77 @@ export function MarketView({ onBack }) {
     <Shell testid="market-view" onBack={onBack} title="Market"
       desc="Blinking lights show the live test-algo direction (green = buy call, red = buy put). Open any Signal panel for details.">
       <div className={`transition-[padding] duration-300 ${signalFor ? "xl:pr-[340px]" : ""}`}>
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-        <Reveal className="w-full shrink-0 xl:w-80">
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-stretch">
+        <Reveal className="w-full shrink-0 xl:w-72">
           <NiftyStocksBoard compact />
         </Reveal>
         <Reveal className="min-w-0 flex-1">
-        <div className="space-y-6">
-        <OiChainCard />
-        <div className="rounded-2xl border border-edge bg-white p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
-            <div className="flex items-center gap-2">
-              <button
-                data-testid="market-live-toggle"
-                onClick={() => setLive((l) => !l)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                  live ? "bg-signal/10 text-signal" : "bg-mist text-slate"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-signal animate-pulse-dot" : "bg-slate"}`} />
-                {live ? "Live Feed" : "Paused"}
-              </button>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ember">
-                <Zap className="h-3 w-3" /> Test Algo Model
-              </span>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 2xl:grid-cols-3">
-            {INSTRUMENTS.map((m) => {
-              const active = instrument === m.name;
-              const sig = buildSignal(m, tick, enabled);
-              return (
-                <div
-                  key={m.name}
-                  role="button"
-                  tabIndex={0}
-                  data-testid={`market-instrument-${slug(m.name)}`}
-                  onClick={() => pickInstrument(m.name)}
-                  onKeyDown={(e) => e.key === "Enter" && pickInstrument(m.name)}
-                  className={`group flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
-                    active ? "border-signal bg-signal/5 shadow-glow-signal" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-lift"
+          <OiChainCard />
+        </Reveal>
+        <Reveal className="w-full shrink-0 xl:w-[400px]">
+          <div className="h-full rounded-2xl border border-edge bg-white p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
+              <div className="flex items-center gap-2">
+                <button
+                  data-testid="market-live-toggle"
+                  onClick={() => setLive((l) => !l)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    live ? "bg-signal/10 text-signal" : "bg-mist text-slate"
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span
-                      data-testid={`market-light-${slug(m.name)}`}
-                      className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-500 ${
-                        sig.buy
-                          ? "bg-signal text-white shadow-[0_0_18px_rgba(0,208,132,0.5)]"
-                          : "bg-rose-500 text-white shadow-[0_0_18px_rgba(244,63,94,0.5)]"
-                      }`}
-                    >
-                      {sig.buy ? <TrendingUp className="h-4 w-4" strokeWidth={2.5} /> : <TrendingDown className="h-4 w-4" strokeWidth={2.5} />}
-                      <span className={`absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white animate-pulse-dot ${sig.buy ? "bg-signal" : "bg-rose-500"}`} />
-                    </span>
-                    <span>
-                      <span className={`block text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
-                      <span className="mt-0.5 block font-mono text-[10px]">
-                        <span className="font-semibold text-ink">₹{m.px}</span>{" "}
-                        <span className={`font-semibold ${m.chg.startsWith("+") ? "text-signal" : "text-rose-500"}`}>{m.chg}</span>
-                      </span>
-                    </span>
-                  </span>
-                  <button
-                    data-testid={`market-signal-${slug(m.name)}`}
-                    onClick={(e) => { e.stopPropagation(); setSignalFor(m); }}
-                    className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-slate transition-colors hover:bg-ember hover:text-white"
+                  <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-signal animate-pulse-dot" : "bg-slate"}`} />
+                  {live ? "Live Feed" : "Paused"}
+                </button>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ember">
+                  <Zap className="h-3 w-3" /> Test Algo Model
+                </span>
+              </div>
+            </div>
+            <div className={`mt-4 grid gap-3 ${signalFor ? "grid-cols-1" : "grid-cols-1 2xl:grid-cols-2"}`}>
+              {INSTRUMENTS.map((m) => {
+                const active = instrument === m.name;
+                const sig = buildSignal(m, tick, enabled);
+                return (
+                  <div
+                    key={m.name}
+                    role="button"
+                    tabIndex={0}
+                    data-testid={`market-instrument-${slug(m.name)}`}
+                    onClick={() => pickInstrument(m.name)}
+                    onKeyDown={(e) => e.key === "Enter" && pickInstrument(m.name)}
+                    className={`group cursor-pointer rounded-2xl border p-4 transition-all duration-200 active:scale-[0.98] ${
+                      active ? "border-signal bg-signal/5 shadow-glow-signal" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-lift"
+                    }`}
                   >
-                    <Zap className="h-3 w-3" /> Signal
-                  </button>
-                </div>
-              );
-            })}
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        data-testid={`market-light-${slug(m.name)}`}
+                        className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-500 ${
+                          sig.buy
+                            ? "bg-signal text-white shadow-[0_0_18px_rgba(0,208,132,0.5)]"
+                            : "bg-rose-500 text-white shadow-[0_0_18px_rgba(244,63,94,0.5)]"
+                        }`}
+                      >
+                        {sig.buy ? <TrendingUp className="h-4 w-4" strokeWidth={2.5} /> : <TrendingDown className="h-4 w-4" strokeWidth={2.5} />}
+                        <span className={`absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white animate-pulse-dot ${sig.buy ? "bg-signal" : "bg-rose-500"}`} />
+                      </span>
+                      <button
+                        data-testid={`market-signal-${slug(m.name)}`}
+                        onClick={(e) => { e.stopPropagation(); setSignalFor(m); }}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-slate transition-colors hover:bg-ember hover:text-white"
+                      >
+                        <Zap className="h-3 w-3" /> Signal
+                      </button>
+                    </div>
+                    <p className={`mt-3 text-[11px] font-bold uppercase leading-snug tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</p>
+                    <p className="mt-1 font-mono text-xs font-semibold text-ink">₹{m.px}</p>
+                    <p className={`font-mono text-[10px] font-semibold ${m.chg.startsWith("+") ? "text-signal" : "text-rose-500"}`}>{m.chg}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-        </div>
         </Reveal>
       </div>
 
@@ -1070,7 +1068,7 @@ export function OiChart() {
   );
 }
 
-const OI_STRIKES = Array.from({ length: 19 }, (_, i) => 24100 + i * 50);
+const OI_STRIKES = Array.from({ length: 14 }, (_, i) => 24350 + i * 50);
 const OI_SPOT = 24812;
 
 const mixHash = (s) => {
@@ -1110,7 +1108,7 @@ export function OiChainCard() {
           <span className="inline-flex items-center gap-1.5 text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Put OI</span>
         </div>
       </div>
-      <div className="max-h-[430px] overflow-y-auto" data-lenis-prevent>
+      <div className="overflow-x-auto" data-lenis-prevent>
         <table className="w-full text-left font-mono text-[10px]">
           <thead className="sticky top-0 bg-ink">
             <tr className="border-b border-night-line text-cloud/70">
