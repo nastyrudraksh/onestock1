@@ -21,6 +21,9 @@ Build a modern, premium, responsive fintech and automated trading services homep
 - Monthly Plan page (own sidebar option): 5 pricing cards (Monthly ₹999 / Quarterly ₹2,499 MOST POPULAR / Half Yearly ₹4,499 / Yearly ₹7,999 / Life Time ₹19,999) in pricing-card format
 - Tier page (own sidebar option): 5 tier cards (Regular / Premium MOST POPULAR / Separate Discussion / VIP / VVIP) in the same card format
 - Algo Signal side drawer on Market page: every instrument has a "Signal" button opening a slide-in panel with test-model output — BUY CALL / BUY PUT direction, entry/target/stop-loss, animated confidence bar, 5 indicator readings (RSI, MACD, EMA cross, VWAP, Supertrend), Refresh (regenerates signal) and Execute Demo Trade buttons, with test-model disclaimer
+- Live signal feed: blinking red/green lights on every instrument title (green = buy call, red = buy put) updating every 4s; Live Feed pause/resume toggle on Market page and inside the drawer (auto-refresh)
+- Custom Algo Builder: toggleable indicator chips in the drawer — selected indicators drive the direction and confidence calculation
+- Signal History Log on Market page: timestamped list (instrument, direction, confidence) of the last 8 generated signals with Clear button
 - Rebrand: TradeSense → OneStock across the whole app
 - All module views interactive inside the panel: broker connect/disconnect, wallet quick-deposit with live balance update, transaction All/Buy/Sell filters, settings toggles + risk inputs + save toast
 - Landing website preserved behind "View Website"; navbar Get Started opens the panel, Platform dropdown opens panel modules; demo amounts originalised (no values copied from user's reference)

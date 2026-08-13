@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check, X, Zap, RefreshCw } from "lucide-react";
@@ -383,28 +383,32 @@ const hashOf = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
 
 const INDICATOR_NAMES = ["RSI (14)", "MACD", "EMA 9/21 Cross", "VWAP", "Supertrend"];
 
-const buildSignal = (m, nonce = 0) => {
-  const h = hashOf(m.name) + nonce * 7;
-  const buy = h % 2 === 0;
+const buildSignal = (m, tick = 0, enabled = [true, true, true, true, true]) => {
+  const h = hashOf(m.name) + tick * 7;
   const num = parseFloat(m.px.replace(/,/g, ""));
   const fmt = (n) => n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const all = INDICATOR_NAMES.map((n, i) => {
+    const v = (h >> (i + 1)) % 3;
+    return { name: n, state: v === 0 ? "Neutral" : v === 1 ? "Bullish" : "Bearish" };
+  });
+  const active = all.filter((_, i) => enabled[i]);
+  const list = active.length ? active : all;
+  const bull = list.filter((x) => x.state === "Bullish").length;
+  const bear = list.filter((x) => x.state === "Bearish").length;
+  const buy = bull >= bear;
   return {
     dir: buy ? "BUY CALL" : "BUY PUT",
     buy,
-    confidence: 62 + (h % 34),
+    confidence: Math.round(55 + (Math.max(bull, bear) / list.length) * 40),
     entry: fmt(num),
     target: fmt(buy ? num * 1.012 : num * 0.988),
     stop: fmt(buy ? num * 0.994 : num * 1.006),
-    indicators: INDICATOR_NAMES.map((n, i) => {
-      const v = (h >> (i + 1)) % 3;
-      return { name: n, state: v === 0 ? "Neutral" : buy ? "Bullish" : "Bearish" };
-    }),
+    indicators: list,
   };
 };
 
-export function SignalDrawer({ instrument, onClose }) {
-  const [nonce, setNonce] = useState(0);
-  const sig = instrument ? buildSignal(instrument, nonce) : null;
+export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, onToggleIndicator, onRefresh, onClose }) {
+  const sig = instrument ? buildSignal(instrument, tick, enabled) : null;
 
   return (
     <AnimatePresence>
@@ -429,19 +433,31 @@ export function SignalDrawer({ instrument, onClose }) {
                 </p>
                 <h3 className="mt-2 font-display text-2xl font-bold tracking-tight">{instrument.name}</h3>
               </div>
-              <button
-                data-testid="signal-close-button"
-                onClick={onClose}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-edge transition-colors hover:bg-mist"
-                aria-label="Close signals"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  data-testid="signal-live-toggle"
+                  onClick={onToggleLive}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    live ? "bg-signal/10 text-signal" : "bg-mist text-slate"
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-signal animate-pulse-dot" : "bg-slate"}`} />
+                  {live ? "Live" : "Paused"}
+                </button>
+                <button
+                  data-testid="signal-close-button"
+                  onClick={onClose}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-edge transition-colors hover:bg-mist"
+                  aria-label="Close signals"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            <div className={`mt-6 rounded-2xl p-5 ${sig.buy ? "bg-signal/10" : "bg-rose-500/10"}`}>
+            <div className={`mt-6 rounded-2xl p-5 transition-colors duration-500 ${sig.buy ? "bg-signal/10" : "bg-rose-500/10"}`}>
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Algo Direction</p>
-              <p className={`mt-1 font-display text-3xl font-bold tracking-tight ${sig.buy ? "text-signal" : "text-rose-500"}`} data-testid="signal-direction">
+              <p className={`mt-1 font-display text-3xl font-bold tracking-tight transition-colors duration-500 ${sig.buy ? "text-signal" : "text-rose-500"}`} data-testid="signal-direction">
                 {sig.dir}
               </p>
               <p className="mt-1 font-mono text-xs text-slate">LTP ₹{instrument.px} · {instrument.chg}</p>
@@ -469,12 +485,31 @@ export function SignalDrawer({ instrument, onClose }) {
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-mist">
                 <motion.div
-                  key={nonce + instrument.name}
-                  className={`h-full rounded-full ${sig.buy ? "bg-signal" : "bg-rose-500"}`}
+                  key={`${instrument.name}-${tick}-${enabled.join("")}`}
+                  className={`h-full rounded-full transition-colors duration-500 ${sig.buy ? "bg-signal" : "bg-rose-500"}`}
                   initial={{ width: 0 }}
                   animate={{ width: `${sig.confidence}%` }}
                   transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
                 />
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Signal Inputs · Custom Algo</p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {INDICATOR_NAMES.map((n, i) => (
+                  <button
+                    key={n}
+                    data-testid={`algo-toggle-${i}`}
+                    onClick={() => onToggleIndicator(i)}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-mono text-[10px] font-bold transition-all active:scale-95 ${
+                      enabled[i] ? "border-ember bg-ember/10 text-ember" : "border-edge bg-white text-slate hover:bg-mist"
+                    }`}
+                  >
+                    {enabled[i] && <Check className="h-3 w-3" strokeWidth={3} />}
+                    {n}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -502,7 +537,7 @@ export function SignalDrawer({ instrument, onClose }) {
               </button>
               <button
                 data-testid="signal-refresh-button"
-                onClick={() => setNonce((n) => n + 1)}
+                onClick={onRefresh}
                 className="inline-flex items-center gap-2 rounded-full border border-edge px-5 py-3 text-sm font-semibold transition-colors hover:bg-mist active:scale-95"
               >
                 <RefreshCw className="h-4 w-4" /> Refresh
@@ -523,25 +558,66 @@ export function SignalDrawer({ instrument, onClose }) {
 export function MarketView({ onBack }) {
   const [instrument, setInstrument] = useState(null);
   const [signalFor, setSignalFor] = useState(null);
+  const [tick, setTick] = useState(0);
+  const [live, setLive] = useState(true);
+  const [enabled, setEnabled] = useState([true, true, true, true, true]);
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    if (!live) return;
+    const id = setInterval(() => setTick((t) => t + 1), 4000);
+    return () => clearInterval(id);
+  }, [live]);
+
+  useEffect(() => {
+    if (!signalFor) return;
+    const sig = buildSignal(signalFor, tick, enabled);
+    const time = new Date().toLocaleTimeString("en-IN", { hour12: false });
+    setHistory((h) =>
+      [{ name: signalFor.name, dir: sig.dir, buy: sig.buy, confidence: sig.confidence, time }, ...h].slice(0, 8)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signalFor, tick]);
+
   const pickInstrument = (name) => {
     setInstrument(name);
     toast.success(`${name} activated`, { description: "Demo only — market added to your watchlist." });
   };
 
+  const toggleIndicator = (i) =>
+    setEnabled((e) => {
+      const next = [...e];
+      next[i] = !next[i];
+      return next.some(Boolean) ? next : e;
+    });
+
   return (
     <Shell testid="market-view" onBack={onBack} title="Market"
-      desc="Choose the instrument you want to trade, or open its algo signal panel. All prices and signals are demo data.">
+      desc="Blinking lights show the live test-algo direction (green = buy call, red = buy put). Open any Signal panel for details.">
       <Reveal>
         <div className="rounded-2xl border border-edge bg-white p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ember">
-              <Zap className="h-3 w-3" /> Test Algo Model
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                data-testid="market-live-toggle"
+                onClick={() => setLive((l) => !l)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                  live ? "bg-signal/10 text-signal" : "bg-mist text-slate"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-signal animate-pulse-dot" : "bg-slate"}`} />
+                {live ? "Live Feed" : "Paused"}
+              </button>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ember">
+                <Zap className="h-3 w-3" /> Test Algo Model
+              </span>
+            </div>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {INSTRUMENTS.map((m) => {
               const active = instrument === m.name;
+              const sig = buildSignal(m, tick, enabled);
               return (
                 <div
                   key={m.name}
@@ -555,7 +631,10 @@ export function MarketView({ onBack }) {
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    {active && <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse-dot" />}
+                    <span
+                      data-testid={`market-light-${slug(m.name)}`}
+                      className={`h-2 w-2 shrink-0 rounded-full animate-pulse-dot transition-colors duration-500 ${sig.buy ? "bg-signal" : "bg-rose-500"}`}
+                    />
                     <span>
                       <span className={`block text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
                       <span className="mt-0.5 block font-mono text-[10px]">
@@ -577,6 +656,41 @@ export function MarketView({ onBack }) {
           </div>
         </div>
       </Reveal>
+
+      <Reveal delay={0.08}>
+        <div className="mt-6 rounded-2xl border border-edge bg-white p-6" data-testid="signal-history">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Signal History</p>
+            {history.length > 0 && (
+              <button
+                data-testid="signal-history-clear"
+                onClick={() => setHistory([])}
+                className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate transition-colors hover:text-rose-500"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {history.length === 0 ? (
+            <p className="mt-4 text-sm text-slate">Open any Signal panel to start logging demo signals here.</p>
+          ) : (
+            <div className="mt-4 space-y-2.5">
+              {history.map((h, i) => (
+                <div key={`${h.time}-${i}`} data-testid={`signal-history-row-${i}`}
+                  className="flex items-center justify-between gap-3 border-b border-edge pb-2.5 last:border-0 last:pb-0">
+                  <span className="font-mono text-[11px] text-slate">{h.time}</span>
+                  <span className="font-mono text-xs font-bold text-ink">{h.name}</span>
+                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold ${h.buy ? "bg-signal/10 text-signal" : "bg-rose-500/10 text-rose-500"}`}>
+                    {h.dir}
+                  </span>
+                  <span className="font-mono text-[11px] font-semibold text-slate">{h.confidence}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Reveal>
+
       {instrument && (
         <Reveal delay={0.1}>
           <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-edge bg-white p-5" data-testid="market-selection-summary">
@@ -592,7 +706,16 @@ export function MarketView({ onBack }) {
           </div>
         </Reveal>
       )}
-      <SignalDrawer instrument={signalFor} onClose={() => setSignalFor(null)} />
+      <SignalDrawer
+        instrument={signalFor}
+        tick={tick}
+        live={live}
+        onToggleLive={() => setLive((l) => !l)}
+        enabled={enabled}
+        onToggleIndicator={toggleIndicator}
+        onRefresh={() => setTick((t) => t + 1)}
+        onClose={() => setSignalFor(null)}
+      />
     </Shell>
   );
 }
