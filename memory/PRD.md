@@ -24,6 +24,9 @@ Build a modern, premium, responsive fintech and automated trading services homep
 - Live signal feed: blinking red/green lights on every instrument title (green = buy call, red = buy put) updating every 4s; Live Feed pause/resume toggle on Market page and inside the drawer (auto-refresh)
 - Custom Algo Builder: toggleable indicator chips in the drawer — selected indicators drive the direction and confidence calculation
 - Signal History Log on Market page: timestamped list (instrument, direction, confidence) of the last 8 generated signals with Clear button
+- NIFTY 50 Stocks board on Market page: 24 stocks with Advance (green/bullish) / Decline (red/bearish) chips, Advances/Declines counts and a split summary bar
+- OI (Open Interest) page in panel sidebar: per-instrument OI contracts, daily OI change, animated Support % vs Resistance % split bars with dominance chips
+- Alert colors: green toast for BUY CALL, red toast for BUY PUT; 3x blinking dots; two-tone beep on 90%+ strong signals
 - Rebrand: TradeSense → OneStock across the whole app
 - All module views interactive inside the panel: broker connect/disconnect, wallet quick-deposit with live balance update, transaction All/Buy/Sell filters, settings toggles + risk inputs + save toast
 - Landing website preserved behind "View Website"; navbar Get Started opens the panel, Platform dropdown opens panel modules; demo amounts originalised (no values copied from user's reference)

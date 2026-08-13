@@ -4,15 +4,16 @@ import { toast } from "sonner";
 import {
   TrendingUp, LayoutDashboard, Landmark, Wallet, Receipt, Settings,
   Menu, X, Globe, LogOut, Activity, ChevronRight, Home, Check, Crown,
-  CandlestickChart, Tag,
+  CandlestickChart, Tag, Gauge,
 } from "lucide-react";
 import { BrokerView, WalletView, TransactionsView, SettingsView } from "../views/ModuleViews";
-import { MarketView, PlanView, TierView } from "../views/PanelViews";
+import { MarketView, PlanView, TierView, OiView } from "../views/PanelViews";
 import { Reveal } from "../landing/Reveal";
 
 const MENU = [
   { icon: LayoutDashboard, label: "Dashboard", view: "panel" },
   { icon: CandlestickChart, label: "Market", view: "market" },
+  { icon: Gauge, label: "OI (Open Interest)", view: "oi" },
   { icon: Tag, label: "Monthly Plan", view: "plan" },
   { icon: Crown, label: "Tier", view: "tier" },
   { icon: Landmark, label: "Broker Details", view: "broker" },
@@ -343,6 +344,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
             <PanelHome stepsDone={stepsDone} completeStep={completeStep} live={live} onModule={onModule} />
           )}
           {module === "market" && <MarketView onBack={() => onModule("panel")} />}
+          {module === "oi" && <OiView onBack={() => onModule("panel")} />}
           {module === "plan" && <PlanView onBack={() => onModule("panel")} />}
           {module === "tier" && <TierView onBack={() => onModule("panel")} />}
           {module === "broker" && <BrokerView onBack={() => onModule("panel")} />}

@@ -693,6 +693,10 @@ export function MarketView({ onBack }) {
         </div>
       </Reveal>
 
+      <Reveal delay={0.05}>
+        <NiftyStocksBoard />
+      </Reveal>
+
       <Reveal delay={0.08}>
         <div className="mt-6 rounded-2xl border border-edge bg-white p-6" data-testid="signal-history">
           <div className="flex items-center justify-between">
@@ -858,6 +862,122 @@ export function TierView({ onBack }) {
           </Reveal>
         ))}
       </div>
+    </Shell>
+  );
+}
+
+const NIFTY_STOCKS = [
+  { name: "RELIANCE", chg: "+1.24%" }, { name: "TCS", chg: "+0.67%" }, { name: "HDFCBANK", chg: "-0.45%" },
+  { name: "INFY", chg: "+1.08%" }, { name: "ICICIBANK", chg: "+0.32%" }, { name: "SBIN", chg: "-0.21%" },
+  { name: "TATAMOTORS", chg: "-0.85%" }, { name: "ITC", chg: "+0.18%" }, { name: "LT", chg: "+0.74%" },
+  { name: "AXISBANK", chg: "-0.62%" }, { name: "KOTAKBANK", chg: "+0.29%" }, { name: "HINDUNILVR", chg: "-0.15%" },
+  { name: "BAJFINANCE", chg: "+1.62%" }, { name: "MARUTI", chg: "+0.51%" }, { name: "SUNPHARMA", chg: "-0.38%" },
+  { name: "TITAN", chg: "+0.92%" }, { name: "ULTRACEMCO", chg: "+0.44%" }, { name: "NTPC", chg: "-0.27%" },
+  { name: "POWERGRID", chg: "+0.13%" }, { name: "ONGC", chg: "-0.96%" }, { name: "TATASTEEL", chg: "+1.15%" },
+  { name: "JSWSTEEL", chg: "+0.83%" }, { name: "ADANIENT", chg: "-1.24%" }, { name: "HCLTECH", chg: "+0.57%" },
+];
+
+export function NiftyStocksBoard() {
+  const advances = NIFTY_STOCKS.filter((s) => s.chg.startsWith("+")).length;
+  const declines = NIFTY_STOCKS.length - advances;
+  return (
+    <div className="mt-6 rounded-2xl border border-edge bg-white p-6" data-testid="nifty-stocks-board">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Nifty 50 Stocks · Advance / Decline</p>
+        <div className="flex items-center gap-3 font-mono text-[11px] font-bold">
+          <span className="text-signal" data-testid="advances-count">Advances {advances}</span>
+          <span className="text-rose-500" data-testid="declines-count">Declines {declines}</span>
+        </div>
+      </div>
+      <div className="mt-3 flex h-2.5 overflow-hidden rounded-full" data-testid="advance-decline-bar">
+        <div className="bg-signal transition-all duration-700" style={{ width: `${(advances / NIFTY_STOCKS.length) * 100}%` }} />
+        <div className="bg-rose-500 transition-all duration-700" style={{ width: `${(declines / NIFTY_STOCKS.length) * 100}%` }} />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+        {NIFTY_STOCKS.map((s) => {
+          const up = s.chg.startsWith("+");
+          return (
+            <div
+              key={s.name}
+              data-testid={`stock-${slug(s.name)}`}
+              className="flex items-center justify-between rounded-xl border border-edge bg-paper px-3.5 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
+            >
+              <span>
+                <span className="block font-mono text-xs font-bold text-ink">{s.name}</span>
+                <span className={`block font-mono text-[10px] font-semibold ${up ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
+              </span>
+              <span className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider ${up ? "bg-signal/10 text-signal" : "bg-rose-500/10 text-rose-500"}`}>
+                {up ? "Advance" : "Decline"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function OiView({ onBack }) {
+  const rows = INSTRUMENTS.map((m) => {
+    const support = 30 + (hashOf(m.name) % 41);
+    return {
+      ...m,
+      support,
+      oi: (12 + (hashOf(m.name) % 80)) / 10,
+      oiChg: ((hashOf(m.name) % 17) - 8) / 2,
+    };
+  });
+
+  return (
+    <Shell testid="oi-view" onBack={onBack} title="Open Interest (OI)"
+      desc="See what percent of traders are positioned at support versus resistance for each market. Demo data only.">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {rows.map((r, i) => {
+          const resistance = 100 - r.support;
+          const supportWins = r.support >= resistance;
+          return (
+            <Reveal key={r.name} delay={Math.min(i * 0.04, 0.3)} y={20}>
+              <div data-testid={`oi-card-${slug(r.name)}`} className="rounded-2xl border border-edge bg-white p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lift">
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-xs font-bold text-ink">{r.name}</p>
+                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider ${supportWins ? "bg-signal/10 text-signal" : "bg-rose-500/10 text-rose-500"}`}>
+                    {supportWins ? "Support Dominates" : "Resistance Dominates"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center gap-4 font-mono text-[10px] text-slate">
+                  <span>OI {r.oi.toFixed(1)}L contracts</span>
+                  <span className={r.oiChg >= 0 ? "text-signal" : "text-rose-500"}>
+                    {r.oiChg >= 0 ? "+" : ""}{r.oiChg.toFixed(1)}% today
+                  </span>
+                </div>
+                <div className="mt-4 flex h-3 overflow-hidden rounded-full">
+                  <motion.div
+                    className="bg-signal"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${r.support}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                  <motion.div
+                    className="bg-rose-500"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${resistance}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </div>
+                <div className="mt-2.5 flex items-center justify-between font-mono text-[11px] font-bold">
+                  <span className="text-signal" data-testid={`oi-support-${slug(r.name)}`}>Support {r.support}%</span>
+                  <span className="text-rose-500" data-testid={`oi-resistance-${slug(r.name)}`}>Resistance {resistance}%</span>
+                </div>
+              </div>
+            </Reveal>
+          );
+        })}
+      </div>
+      <p className="mt-6 text-[11px] leading-relaxed text-slate">
+        Percentages are randomly generated demo data for the test model and do not represent real trader positioning.
+      </p>
     </Shell>
   );
 }
