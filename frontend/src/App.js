@@ -17,12 +17,12 @@ import FAQ from "@/components/landing/FAQ";
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
 import SignupDialog from "@/components/landing/SignupDialog";
-import { BrokerView, WalletView, TransactionsView, SettingsView } from "@/components/views/ModuleViews";
+import UserPanel from "@/components/panel/UserPanel";
 import { scrollToSection } from "@/lib/scroll";
 
 export default function App() {
   const [cta, setCta] = useState({ open: false, mode: "signup" });
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("panel");
   const openCta = (mode = "signup") => setCta({ open: true, mode });
 
   const navigate = (v) => {
@@ -31,8 +31,8 @@ export default function App() {
   };
 
   const goSection = (id) => {
-    if (view !== "home") {
-      setView("home");
+    if (view !== "website") {
+      setView("website");
       setTimeout(() => scrollToSection(id), 150);
     } else {
       scrollToSection(id);
@@ -57,10 +57,10 @@ export default function App() {
 
   return (
     <div className="App min-h-screen bg-paper text-ink font-sans" data-testid="app-root">
-      <Navbar onCta={openCta} onSection={goSection} onNavigate={navigate} />
-      <main>
-        {view === "home" && (
-          <>
+      {view === "website" ? (
+        <>
+          <Navbar onCta={openCta} onSection={goSection} onNavigate={navigate} />
+          <main>
             <Hero onCta={openCta} />
             <Stats />
             <Marquee />
@@ -73,14 +73,12 @@ export default function App() {
             <Testimonials />
             <FAQ />
             <FinalCTA onCta={openCta} />
-          </>
-        )}
-        {view === "broker" && <BrokerView onBack={() => navigate("home")} />}
-        {view === "wallet" && <WalletView onBack={() => navigate("home")} />}
-        {view === "transactions" && <TransactionsView onBack={() => navigate("home")} />}
-        {view === "settings" && <SettingsView onBack={() => navigate("home")} />}
-      </main>
-      <Footer />
+          </main>
+          <Footer />
+        </>
+      ) : (
+        <UserPanel module={view} onModule={navigate} onWebsite={() => navigate("website")} />
+      )}
       <SignupDialog
         open={cta.open}
         mode={cta.mode}

@@ -8,7 +8,7 @@ import { Reveal } from "../landing/Reveal";
 import { Switch } from "@/components/ui/switch";
 
 const Shell = ({ title, desc, onBack, testid, children }) => (
-  <section data-testid={testid} className="min-h-[80vh] bg-paper bg-grid-light px-6 pb-12 pt-28 sm:px-12">
+  <section data-testid={testid} className="min-h-[70vh] px-2 py-4 sm:px-4">
     <div className="mx-auto max-w-5xl">
       <button
         data-testid={`${testid}-back-button`}

@@ -118,7 +118,7 @@ export default function Navbar({ onCta, onSection, onNavigate }) {
           </button>
           <button
             data-testid="nav-get-started-button"
-            onClick={() => onCta("signup")}
+            onClick={() => onNavigate("panel")}
             className="rounded-full bg-ember px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 active:scale-95 shadow-glow-ember"
           >
             Get Started
@@ -178,7 +178,7 @@ export default function Navbar({ onCta, onSection, onNavigate }) {
                 </button>
                 <button
                   data-testid="nav-mobile-get-started-button"
-                  onClick={() => { setOpen(false); onCta("signup"); }}
+                  onClick={() => { setOpen(false); onNavigate("panel"); }}
                   className="flex-1 rounded-full bg-ember px-5 py-3 text-sm font-semibold text-white"
                 >
                   Get Started
