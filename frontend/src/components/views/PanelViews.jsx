@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check, X, Zap, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check, X, Zap, RefreshCw, TrendingUp, TrendingDown, Minus, Plus } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { Shell } from "./ModuleViews";
 import { Reveal } from "../landing/Reveal";
@@ -359,6 +359,35 @@ export function TicketsView({ onBack }) {
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
+const MinBtn = ({ id, collapsed, onClick, dark = false }) => (
+  <button
+    data-testid={id}
+    onClick={onClick}
+    aria-label={collapsed ? "Expand panel" : "Minimize panel"}
+    className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+      dark ? "border-night-line bg-white/5 text-cloud hover:bg-white/10" : "border-edge bg-white text-slate hover:bg-mist hover:text-ink"
+    }`}
+  >
+    {collapsed ? <Plus className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+  </button>
+);
+
+const Collapse = ({ open, children }) => (
+  <AnimatePresence initial={false}>
+    {open && (
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: "auto", opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="overflow-hidden"
+      >
+        {children}
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
 const INSTRUMENTS = [
   { name: "NIFTY 50 OPTION", px: "24,812.75", chg: "+0.84%" },
   { name: "NIFTY 50 FUTURE", px: "24,905.30", chg: "+0.79%" },
@@ -577,6 +606,10 @@ export function MarketView({ onBack }) {
   const [live, setLive] = useState(true);
   const [enabled, setEnabled] = useState([true, true, true, true, true]);
   const [history, setHistory] = useState([]);
+  const [collapsed, setCollapsed] = useState({ stocks: false, oi: false, inst: false });
+  const togglePanel = (k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
+  const openStrike = (strike) =>
+    setSignalFor({ name: `NIFTY ${strike} STRIKE`, px: strike.toLocaleString("en-IN"), chg: "+0.00%" });
 
   useEffect(() => {
     if (!live) return;
@@ -630,14 +663,30 @@ export function MarketView({ onBack }) {
     <Shell testid="market-view" onBack={onBack} title="Market"
       desc="Blinking lights show the live test-algo direction (green = buy call, red = buy put). Open any Signal panel for details.">
       <div className={`transition-[padding] duration-300 ${signalFor ? "xl:pr-[340px]" : ""}`}>
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-stretch">
-        <Reveal className="w-full shrink-0 xl:w-72">
-          <NiftyStocksBoard compact />
+      <div className="mb-5 flex items-center justify-end gap-2">
+        <button
+          data-testid="market-minimize-all"
+          onClick={() => setCollapsed({ stocks: true, oi: true, inst: true })}
+          className="rounded-full border border-edge bg-white px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-slate transition-all hover:bg-mist active:scale-95"
+        >
+          Minimize All
+        </button>
+        <button
+          data-testid="market-expand-all"
+          onClick={() => setCollapsed({ stocks: false, oi: false, inst: false })}
+          className="rounded-full bg-ink px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white transition-all hover:brightness-125 active:scale-95"
+        >
+          Expand All
+        </button>
+      </div>
+      <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <Reveal className="w-full min-w-0">
+          <NiftyStocksBoard compact collapsed={collapsed.stocks} onToggle={() => togglePanel("stocks")} />
         </Reveal>
-        <Reveal className="min-w-0 flex-1">
-          <OiChainCard />
+        <Reveal className="w-full min-w-0">
+          <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} />
         </Reveal>
-        <Reveal className="w-full shrink-0 xl:w-[400px]">
+        <Reveal className="w-full min-w-0">
           <div className="h-full rounded-2xl border border-edge bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
@@ -655,8 +704,10 @@ export function MarketView({ onBack }) {
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ember">
                   <Zap className="h-3 w-3" /> Test Algo Model
                 </span>
+                <MinBtn id="min-inst" collapsed={collapsed.inst} onClick={() => togglePanel("inst")} />
               </div>
             </div>
+            <Collapse open={!collapsed.inst}>
             <div className={`mt-4 grid gap-3 ${signalFor ? "grid-cols-1" : "grid-cols-1 2xl:grid-cols-2"}`}>
               {INSTRUMENTS.map((m) => {
                 const active = instrument === m.name;
@@ -700,6 +751,7 @@ export function MarketView({ onBack }) {
                 );
               })}
             </div>
+            </Collapse>
           </div>
         </Reveal>
       </div>
@@ -882,9 +934,18 @@ const NIFTY_STOCKS = [
   { name: "TITAN", chg: "+0.92%" }, { name: "ULTRACEMCO", chg: "+0.44%" }, { name: "NTPC", chg: "-0.27%" },
   { name: "POWERGRID", chg: "+0.13%" }, { name: "ONGC", chg: "-0.96%" }, { name: "TATASTEEL", chg: "+1.15%" },
   { name: "JSWSTEEL", chg: "+0.83%" }, { name: "ADANIENT", chg: "-1.24%" }, { name: "HCLTECH", chg: "+0.57%" },
+  { name: "BHARTIARTL", chg: "+0.66%" }, { name: "ASIANPAINT", chg: "-0.33%" }, { name: "DMART", chg: "+0.41%" },
+  { name: "WIPRO", chg: "+0.95%" }, { name: "TECHM", chg: "-0.54%" }, { name: "HINDZINC", chg: "+1.08%" },
+  { name: "COALINDIA", chg: "-0.18%" }, { name: "BPCL", chg: "+0.27%" }, { name: "IOC", chg: "-0.61%" },
+  { name: "HEROMOTOCO", chg: "+0.48%" }, { name: "EICHERMOT", chg: "+1.31%" }, { name: "BAJAJ-AUTO", chg: "-0.29%" },
+  { name: "TVSMOTOR", chg: "+0.72%" }, { name: "CIPLA", chg: "-0.44%" }, { name: "DRREDDY", chg: "+0.36%" },
+  { name: "DIVISLAB", chg: "+0.89%" }, { name: "APOLLOHOSP", chg: "-0.52%" }, { name: "BRITANNIA", chg: "+0.21%" },
+  { name: "NESTLEIND", chg: "-0.12%" }, { name: "TATACONSUM", chg: "+0.58%" }, { name: "HAVELLS", chg: "-0.67%" },
+  { name: "PIDILITIND", chg: "+0.33%" }, { name: "VEDL", chg: "-0.94%" }, { name: "HINDALCO", chg: "+1.42%" },
+  { name: "GRASIM", chg: "-0.26%" }, { name: "INDUSINDBK", chg: "+0.78%" },
 ];
 
-export function NiftyStocksBoard({ compact = false }) {
+export function NiftyStocksBoard({ compact = false, collapsed = false, onToggle }) {
   const up = NIFTY_STOCKS.filter((s) => s.chg.startsWith("+"));
   const down = NIFTY_STOCKS.filter((s) => !s.chg.startsWith("+"));
 
@@ -894,19 +955,22 @@ export function NiftyStocksBoard({ compact = false }) {
       <div
         key={s.name}
         data-testid={`stock-${slug(s.name)}`}
-        className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${gain ? "bg-signal/5" : "bg-rose-500/5"}`}
+        className={`flex items-center justify-between rounded-md px-2 py-1.5 ${gain ? "bg-signal/5" : "bg-rose-500/5"}`}
       >
-        <span className="font-mono text-[11px] font-bold text-ink">{s.name}</span>
-        <span className={`font-mono text-[10px] font-semibold ${gain ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
+        <span className="font-mono text-[10px] font-bold text-ink">{s.name}</span>
+        <span className={`font-mono text-[9px] font-semibold ${gain ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
       </div>
     );
   };
 
   if (compact) {
     return (
-      <div className="rounded-2xl border border-edge bg-white p-5" data-testid="nifty-stocks-board">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Nifty 50 Stocks</p>
-        <div className="mt-3 flex items-center justify-between font-mono text-[11px] font-bold">
+      <div className="rounded-2xl border border-edge bg-white p-4" data-testid="nifty-stocks-board">
+        <div className="flex items-center justify-between">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Nifty 50 Stocks</p>
+          {onToggle && <MinBtn id="min-stocks" collapsed={collapsed} onClick={onToggle} />}
+        </div>
+        <div className="mt-2.5 flex items-center justify-between font-mono text-[11px] font-bold">
           <span className="text-signal" data-testid="advances-count">Advance {up.length}</span>
           <span className="text-rose-500" data-testid="declines-count">Decline {down.length}</span>
         </div>
@@ -914,20 +978,24 @@ export function NiftyStocksBoard({ compact = false }) {
           <div className="bg-signal transition-all duration-700" style={{ width: `${(up.length / NIFTY_STOCKS.length) * 100}%` }} />
           <div className="bg-rose-500 transition-all duration-700" style={{ width: `${(down.length / NIFTY_STOCKS.length) * 100}%` }} />
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div>
-            <p className="mb-2 border-b border-signal/20 pb-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-signal">
-              Advance · Bullish
-            </p>
-            <div className="space-y-1.5">{up.map(stockRow)}</div>
+        <Collapse open={!collapsed}>
+          <div className="mt-3 max-h-[520px] overflow-y-auto pr-1" data-lenis-prevent>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="mb-1.5 border-b border-signal/20 pb-1 font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-signal">
+                  Advance · Bullish
+                </p>
+                <div className="space-y-1">{up.map(stockRow)}</div>
+              </div>
+              <div>
+                <p className="mb-1.5 border-b border-rose-500/20 pb-1 font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-rose-500">
+                  Decline · Bearish
+                </p>
+                <div className="space-y-1">{down.map(stockRow)}</div>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="mb-2 border-b border-rose-500/20 pb-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-rose-500">
-              Decline · Bearish
-            </p>
-            <div className="space-y-1.5">{down.map(stockRow)}</div>
-          </div>
-        </div>
+        </Collapse>
       </div>
     );
   }
@@ -1080,9 +1148,21 @@ const mixHash = (s) => {
   return Math.abs(h);
 };
 
-export function OiChainCard() {
+const OI_COL_TOGGLES = [
+  { key: "callOi", label: "Call OI" },
+  { key: "putOi", label: "Put OI" },
+  { key: "callChg", label: "Call OI Chg" },
+  { key: "putChg", label: "Put OI Chg" },
+  { key: "strike", label: "Strike" },
+  { key: "iv", label: "IV" },
+];
+
+export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle }) {
+  const [tab, setTab] = useState("total");
+  const [cols, setCols] = useState({ callOi: true, putOi: true, callChg: true, putChg: true, strike: true, iv: true });
+
   const rows = OI_STRIKES.map((strike) => {
-    const h = mixHash(`oi-${strike}`);
+    const h = mixHash(`oi-${strike}-${tick}`);
     const dist = Math.abs(strike - OI_SPOT) / 50;
     const nearBoost = Math.max(0, 60 - dist * 9);
     return {
@@ -1092,63 +1172,109 @@ export function OiChainCard() {
       callChg: (h >> 5) % 240 - 110,
       putChg: (h >> 7) % 220 - 100,
       iv: (9 + ((h >> 2) % 120) / 10).toFixed(1),
-      callLtp: Math.max(0.05, (OI_SPOT - strike) * 0.55 + (h % 60)).toFixed(2),
-      putLtp: Math.max(0.05, (strike - 24000) * 0.42 + ((h >> 4) % 50)).toFixed(2),
     };
   });
   const maxOi = Math.max(...rows.map((r) => Math.max(r.callOi, r.putOi)));
   const barW = (v) => `${Math.max(3, (v / maxOi) * 100)}%`;
 
+  const show = (k) => {
+    if (!cols[k]) return false;
+    if (tab === "total") return true;
+    const callCols = ["callOi", "callChg", "strike", "iv"];
+    const putCols = ["putOi", "putChg", "strike", "iv"];
+    return (tab === "call" ? callCols : putCols).includes(k);
+  };
+
   return (
     <div className="overflow-hidden rounded-2xl border border-night-line bg-ink" data-testid="oi-chain">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-night-line px-4 py-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-cloud">OI · Option Chain — Nifty 50</p>
-        <div className="flex items-center gap-3 font-mono text-[9px] font-bold">
-          <span className="inline-flex items-center gap-1.5 text-rose-400"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Call OI</span>
-          <span className="inline-flex items-center gap-1.5 text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Put OI</span>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[9px] font-bold text-rose-400"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Call OI</span>
+          <span className="inline-flex items-center gap-1.5 font-mono text-[9px] font-bold text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Put OI</span>
+          {onToggle && <MinBtn id="min-oi" collapsed={collapsed} onClick={onToggle} dark />}
         </div>
       </div>
-      <div className="overflow-x-auto" data-lenis-prevent>
-        <table className="w-full text-left font-mono text-[10px]">
-          <thead className="sticky top-0 bg-ink">
-            <tr className="border-b border-night-line text-cloud/70">
-              <th className="px-2 py-2 font-semibold">OI Chg%</th>
-              <th className="px-2 py-2 font-semibold">OI-Lakh</th>
-              <th className="px-2 py-2 font-semibold text-right">Call OI</th>
-              <th className="px-2 py-2 text-center font-semibold text-paper">Strike</th>
-              <th className="px-2 py-2 font-semibold">IV</th>
-              <th className="px-2 py-2 font-semibold">Put OI</th>
-              <th className="px-2 py-2 font-semibold">OI-Lakh</th>
-              <th className="px-2 py-2 text-right font-semibold">OI Chg%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const atm = Math.abs(r.strike - OI_SPOT) <= 25;
-              return (
-                <tr key={r.strike} data-testid={`oi-row-${r.strike}`}
-                  className={`border-b border-night-line/60 transition-colors hover:bg-white/5 ${atm ? "bg-ember/10" : ""}`}>
-                  <td className={`px-2 py-1.5 font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.callChg >= 0 ? `${r.callChg}%` : `${r.callChg}%`}</td>
-                  <td className="px-2 py-1.5 text-cloud">{r.callOi}</td>
-                  <td className="px-2 py-1.5">
-                    <div className="flex justify-end"><div className="h-2 rounded-l-sm bg-rose-500/80" style={{ width: barW(r.callOi) }} /></div>
-                  </td>
-                  <td className={`px-2 py-1.5 text-center font-bold ${atm ? "text-ember" : "text-paper"}`}>{r.strike}</td>
-                  <td className="px-2 py-1.5 text-cloud">{r.iv}</td>
-                  <td className="px-2 py-1.5">
-                    <div className="flex justify-start"><div className="h-2 rounded-r-sm bg-signal/80" style={{ width: barW(r.putOi) }} /></div>
-                  </td>
-                  <td className="px-2 py-1.5 text-cloud">{r.putOi}</td>
-                  <td className={`px-2 py-1.5 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.putChg >= 0 ? `${r.putChg}%` : `${r.putChg}%`}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="border-t border-night-line px-4 py-2.5 text-[10px] text-cloud/60">
-        Demo option chain — randomly generated test data, not real open interest.
-      </p>
+      <Collapse open={!collapsed}>
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-night-line px-4 py-2.5">
+          {[{ k: "call", label: "Call OI" }, { k: "put", label: "Put OI" }, { k: "total", label: "Total OI" }].map((t) => (
+            <button
+              key={t.k}
+              data-testid={`oi-tab-${t.k}`}
+              onClick={() => setTab(t.k)}
+              className={`rounded-full px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                tab === t.k ? "bg-ember text-white" : "bg-white/5 text-cloud hover:bg-white/10"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+          <span className="mx-1 hidden h-4 w-px bg-night-line sm:block" />
+          {OI_COL_TOGGLES.map((c) => (
+            <button
+              key={c.key}
+              data-testid={`oi-col-${c.key}`}
+              onClick={() => setCols((s) => ({ ...s, [c.key]: !s[c.key] }))}
+              className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold transition-colors ${
+                cols[c.key] ? "border-signal/40 bg-signal/10 text-signal" : "border-night-line text-cloud/60 hover:text-cloud"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <div className="overflow-x-auto" data-lenis-prevent>
+          <table className="w-full text-left font-mono text-[10px]">
+            <thead>
+              <tr className="border-b border-night-line text-cloud/70">
+                {show("callChg") && <th className="px-2 py-2 font-semibold">Call Chg%</th>}
+                {show("callOi") && <th className="px-2 py-2 text-right font-semibold">Call OI</th>}
+                {show("strike") && <th className="px-2 py-2 text-center font-semibold text-paper">Strike</th>}
+                {show("iv") && <th className="px-2 py-2 font-semibold">IV</th>}
+                {show("putOi") && <th className="px-2 py-2 font-semibold">Put OI</th>}
+                {show("putChg") && <th className="px-2 py-2 text-right font-semibold">Put Chg%</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const atm = Math.abs(r.strike - OI_SPOT) <= 25;
+                return (
+                  <tr
+                    key={r.strike}
+                    data-testid={`oi-row-${r.strike}`}
+                    onClick={() => onStrike?.(r.strike)}
+                    className={`cursor-pointer border-b border-night-line/60 transition-colors hover:bg-white/10 ${atm ? "bg-ember/10" : ""}`}
+                  >
+                    {show("callChg") && <td className={`px-2 py-1.5 font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.callChg}%</td>}
+                    {show("callOi") && (
+                      <td className="px-2 py-1.5">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-cloud">{r.callOi}</span>
+                          <div className="h-2 rounded-l-sm bg-rose-500/80 transition-all duration-500" style={{ width: barW(r.callOi) }} />
+                        </div>
+                      </td>
+                    )}
+                    {show("strike") && <td className={`px-2 py-1.5 text-center font-bold ${atm ? "text-ember" : "text-paper"}`}>{r.strike}</td>}
+                    {show("iv") && <td className="px-2 py-1.5 text-cloud">{r.iv}</td>}
+                    {show("putOi") && (
+                      <td className="px-2 py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-2 rounded-r-sm bg-signal/80 transition-all duration-500" style={{ width: barW(r.putOi) }} />
+                          <span className="text-cloud">{r.putOi}</span>
+                        </div>
+                      </td>
+                    )}
+                    {show("putChg") && <td className={`px-2 py-1.5 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.putChg}%</td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="border-t border-night-line px-4 py-2.5 text-[10px] text-cloud/60">
+          Demo option chain — click any strike to open its signal note. Randomly generated test data.
+        </p>
+      </Collapse>
     </div>
   );
 }
