@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check, X, Zap, RefreshCw } from "lucide-react";
+import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check, X, Zap, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
 import { Shell } from "./ModuleViews";
 import { Reveal } from "../landing/Reveal";
 import { AreaTrend, PnlBars, growthData } from "../landing/charts";
@@ -474,12 +474,12 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
               </div>
             </div>
 
-            <div className={`mt-6 rounded-2xl p-5 transition-colors duration-500 ${sig.buy ? "bg-signal/10" : "bg-rose-500/10"}`}>
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Algo Direction</p>
-              <p className={`mt-1 font-display text-3xl font-bold tracking-tight transition-colors duration-500 ${sig.buy ? "text-signal" : "text-rose-500"}`} data-testid="signal-direction">
+            <div className={`mt-6 rounded-2xl p-5 transition-colors duration-500 ${sig.buy ? "bg-signal" : "bg-rose-500"}`}>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Algo Direction</p>
+              <p className="mt-1 font-display text-3xl font-bold tracking-tight text-white transition-colors duration-500" data-testid="signal-direction">
                 {sig.dir}
               </p>
-              <p className="mt-1 font-mono text-xs text-slate">LTP ₹{instrument.px} · {instrument.chg}</p>
+              <p className="mt-1 font-mono text-xs text-white/70">LTP ₹{instrument.px} · {instrument.chg}</p>
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2.5">
@@ -549,7 +549,15 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
             <div className="mt-5 flex gap-3">
               <button
                 data-testid="signal-execute-button"
-                onClick={() => toast.success(`${sig.dir} ${instrument.name} placed`, { description: "Demo only — no real order was placed." })}
+                onClick={() => {
+                  const fn = sig.buy ? toast.success : toast.error;
+                  fn(`${sig.dir} ${instrument.name} placed`, {
+                    description: "Demo only — no real order was placed.",
+                    style: sig.buy
+                      ? { background: "#00D084", color: "#06281C", border: "1px solid #00B573" }
+                      : { background: "#F43F5E", color: "#FFFFFF", border: "1px solid #E11D48" },
+                  });
+                }}
                 className="flex-1 rounded-full bg-ember py-3 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95"
               >
                 Execute Demo Trade
@@ -599,6 +607,9 @@ export function MarketView({ onBack }) {
       fn(`Strong Signal: ${m.name}`, {
         id: `strong-${slug(m.name)}-${tick}`,
         description: `${sig.dir} · ${sig.confidence}% confidence · demo test model`,
+        style: sig.buy
+          ? { background: "#00D084", color: "#06281C", border: "1px solid #00B573" }
+          : { background: "#F43F5E", color: "#FFFFFF", border: "1px solid #E11D48" },
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -673,8 +684,15 @@ export function MarketView({ onBack }) {
                   <span className="flex items-center gap-2">
                     <span
                       data-testid={`market-light-${slug(m.name)}`}
-                      className={`h-6 w-6 shrink-0 rounded-full animate-pulse-dot ring-4 transition-colors duration-500 ${sig.buy ? "bg-signal ring-signal/20" : "bg-rose-500 ring-rose-500/20"}`}
-                    />
+                      className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-500 ${
+                        sig.buy
+                          ? "bg-signal text-white shadow-[0_0_18px_rgba(0,208,132,0.5)]"
+                          : "bg-rose-500 text-white shadow-[0_0_18px_rgba(244,63,94,0.5)]"
+                      }`}
+                    >
+                      {sig.buy ? <TrendingUp className="h-4 w-4" strokeWidth={2.5} /> : <TrendingDown className="h-4 w-4" strokeWidth={2.5} />}
+                      <span className={`absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white animate-pulse-dot ${sig.buy ? "bg-signal" : "bg-rose-500"}`} />
+                    </span>
                     <span>
                       <span className={`block text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
                       <span className="mt-0.5 block font-mono text-[10px]">
@@ -721,7 +739,7 @@ export function MarketView({ onBack }) {
                   className="flex items-center justify-between gap-3 border-b border-edge pb-2.5 last:border-0 last:pb-0">
                   <span className="font-mono text-[11px] text-slate">{h.time}</span>
                   <span className="font-mono text-xs font-bold text-ink">{h.name}</span>
-                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold ${h.buy ? "bg-signal/10 text-signal" : "bg-rose-500/10 text-rose-500"}`}>
+                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold ${h.buy ? "bg-signal text-white" : "bg-rose-500 text-white"}`}>
                     {h.dir}
                   </span>
                   <span className="font-mono text-[11px] font-semibold text-slate">{h.confidence}%</span>
