@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check, X, Zap, RefreshCw } from "lucide-react";
 import { Shell } from "./ModuleViews";
 import { Reveal } from "../landing/Reveal";
 import { AreaTrend, PnlBars, growthData } from "../landing/charts";
@@ -378,8 +379,150 @@ const INSTRUMENTS = [
   { name: "NATURAL GAS", px: "248.60", chg: "+0.96%" },
 ];
 
+const hashOf = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
+
+const INDICATOR_NAMES = ["RSI (14)", "MACD", "EMA 9/21 Cross", "VWAP", "Supertrend"];
+
+const buildSignal = (m, nonce = 0) => {
+  const h = hashOf(m.name) + nonce * 7;
+  const buy = h % 2 === 0;
+  const num = parseFloat(m.px.replace(/,/g, ""));
+  const fmt = (n) => n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  return {
+    dir: buy ? "BUY CALL" : "BUY PUT",
+    buy,
+    confidence: 62 + (h % 34),
+    entry: fmt(num),
+    target: fmt(buy ? num * 1.012 : num * 0.988),
+    stop: fmt(buy ? num * 0.994 : num * 1.006),
+    indicators: INDICATOR_NAMES.map((n, i) => {
+      const v = (h >> (i + 1)) % 3;
+      return { name: n, state: v === 0 ? "Neutral" : buy ? "Bullish" : "Bearish" };
+    }),
+  };
+};
+
+export function SignalDrawer({ instrument, onClose }) {
+  const [nonce, setNonce] = useState(0);
+  const sig = instrument ? buildSignal(instrument, nonce) : null;
+
+  return (
+    <AnimatePresence>
+      {instrument && sig && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm"
+          />
+          <motion.aside
+            data-testid="signal-drawer"
+            data-lenis-prevent
+            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l border-edge bg-white p-6 shadow-panel"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-slate">
+                  <Zap className="h-3.5 w-3.5 text-ember" /> Algo Signal · Test Model
+                </p>
+                <h3 className="mt-2 font-display text-2xl font-bold tracking-tight">{instrument.name}</h3>
+              </div>
+              <button
+                data-testid="signal-close-button"
+                onClick={onClose}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-edge transition-colors hover:bg-mist"
+                aria-label="Close signals"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className={`mt-6 rounded-2xl p-5 ${sig.buy ? "bg-signal/10" : "bg-rose-500/10"}`}>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Algo Direction</p>
+              <p className={`mt-1 font-display text-3xl font-bold tracking-tight ${sig.buy ? "text-signal" : "text-rose-500"}`} data-testid="signal-direction">
+                {sig.dir}
+              </p>
+              <p className="mt-1 font-mono text-xs text-slate">LTP ₹{instrument.px} · {instrument.chg}</p>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2.5">
+              {[
+                { label: "Entry", value: sig.entry },
+                { label: "Target", value: sig.target, green: true },
+                { label: "Stop Loss", value: sig.stop, red: true },
+              ].map((f) => (
+                <div key={f.label} className="rounded-xl border border-edge bg-paper p-3">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-slate">{f.label}</p>
+                  <p className={`mt-1 font-mono text-sm font-bold ${f.green ? "text-signal" : f.red ? "text-rose-500" : "text-ink"}`}>
+                    ₹{f.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5">
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Algo Confidence</p>
+                <span className="font-mono text-xs font-bold text-ink" data-testid="signal-confidence">{sig.confidence}%</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-mist">
+                <motion.div
+                  key={nonce + instrument.name}
+                  className={`h-full rounded-full ${sig.buy ? "bg-signal" : "bg-rose-500"}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${sig.confidence}%` }}
+                  transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-edge">
+              <p className="border-b border-edge px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Indicator Readings</p>
+              {sig.indicators.map((ind, i) => (
+                <div key={ind.name} className={`flex items-center justify-between px-4 py-3 ${i < sig.indicators.length - 1 ? "border-b border-edge" : ""}`} data-testid={`signal-indicator-${i}`}>
+                  <span className="font-mono text-xs font-semibold text-ink">{ind.name}</span>
+                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
+                    ind.state === "Bullish" ? "bg-signal/10 text-signal" : ind.state === "Bearish" ? "bg-rose-500/10 text-rose-500" : "bg-mist text-slate"
+                  }`}>
+                    {ind.state}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                data-testid="signal-execute-button"
+                onClick={() => toast.success(`${sig.dir} ${instrument.name} placed`, { description: "Demo only — no real order was placed." })}
+                className="flex-1 rounded-full bg-ember py-3 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95"
+              >
+                Execute Demo Trade
+              </button>
+              <button
+                data-testid="signal-refresh-button"
+                onClick={() => setNonce((n) => n + 1)}
+                className="inline-flex items-center gap-2 rounded-full border border-edge px-5 py-3 text-sm font-semibold transition-colors hover:bg-mist active:scale-95"
+              >
+                <RefreshCw className="h-4 w-4" /> Refresh
+              </button>
+            </div>
+
+            <p className="mt-5 text-[11px] leading-relaxed text-slate">
+              Test model only — signals are randomly generated demo data and do not use real market feeds.
+              This is not investment advice.
+            </p>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function MarketView({ onBack }) {
   const [instrument, setInstrument] = useState(null);
+  const [signalFor, setSignalFor] = useState(null);
   const pickInstrument = (name) => {
     setInstrument(name);
     toast.success(`${name} activated`, { description: "Demo only — market added to your watchlist." });
@@ -387,31 +530,48 @@ export function MarketView({ onBack }) {
 
   return (
     <Shell testid="market-view" onBack={onBack} title="Market"
-      desc="Choose the instrument you want to trade. All prices shown are demo data.">
+      desc="Choose the instrument you want to trade, or open its algo signal panel. All prices and signals are demo data.">
       <Reveal>
         <div className="rounded-2xl border border-edge bg-white p-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ember">
+              <Zap className="h-3 w-3" /> Test Algo Model
+            </span>
+          </div>
           <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {INSTRUMENTS.map((m) => {
               const active = instrument === m.name;
               return (
-                <button
+                <div
                   key={m.name}
+                  role="button"
+                  tabIndex={0}
                   data-testid={`market-instrument-${slug(m.name)}`}
                   onClick={() => pickInstrument(m.name)}
-                  className={`group flex items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
+                  onKeyDown={(e) => e.key === "Enter" && pickInstrument(m.name)}
+                  className={`group flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
                     active ? "border-signal bg-signal/5 shadow-glow-signal" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-lift"
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     {active && <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse-dot" />}
-                    <span className={`text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
+                    <span>
+                      <span className={`block text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
+                      <span className="mt-0.5 block font-mono text-[10px]">
+                        <span className="font-semibold text-ink">₹{m.px}</span>{" "}
+                        <span className={`font-semibold ${m.chg.startsWith("+") ? "text-signal" : "text-rose-500"}`}>{m.chg}</span>
+                      </span>
+                    </span>
                   </span>
-                  <span className="text-right">
-                    <span className="block font-mono text-[11px] font-semibold text-ink">₹{m.px}</span>
-                    <span className={`block font-mono text-[10px] font-semibold ${m.chg.startsWith("+") ? "text-signal" : "text-rose-500"}`}>{m.chg}</span>
-                  </span>
-                </button>
+                  <button
+                    data-testid={`market-signal-${slug(m.name)}`}
+                    onClick={(e) => { e.stopPropagation(); setSignalFor(m); }}
+                    className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-slate transition-colors hover:bg-ember hover:text-white"
+                  >
+                    <Zap className="h-3 w-3" /> Signal
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -432,6 +592,7 @@ export function MarketView({ onBack }) {
           </div>
         </Reveal>
       )}
+      <SignalDrawer instrument={signalFor} onClose={() => setSignalFor(null)} />
     </Shell>
   );
 }
