@@ -533,20 +533,6 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-edge">
-              <p className="border-b border-edge px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Indicator Readings</p>
-              {sig.indicators.map((ind, i) => (
-                <div key={ind.name} className={`flex items-center justify-between px-4 py-3 ${i < sig.indicators.length - 1 ? "border-b border-edge" : ""}`} data-testid={`signal-indicator-${i}`}>
-                  <span className="font-mono text-xs font-semibold text-ink">{ind.name}</span>
-                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
-                    ind.state === "Bullish" ? "bg-signal/10 text-signal" : ind.state === "Bearish" ? "bg-rose-500/10 text-rose-500" : "bg-mist text-slate"
-                  }`}>
-                    {ind.state}
-                  </span>
-                </div>
-              ))}
-            </div>
-
             <div className="mt-5 flex gap-3">
               <button
                 data-testid="signal-execute-button"
@@ -648,7 +634,7 @@ export function MarketView({ onBack }) {
         </Reveal>
         <Reveal className="min-w-0 flex-1">
         <div className="space-y-6">
-        <OiChart />
+        <OiChainCard />
         <div className="rounded-2xl border border-edge bg-white p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
@@ -1079,6 +1065,91 @@ export function OiChart() {
       </div>
       <p className="mt-3 text-[11px] leading-relaxed text-slate">
         Demo data — percent of traders positioned at support (green) versus resistance (red) for each market.
+      </p>
+    </div>
+  );
+}
+
+const OI_STRIKES = Array.from({ length: 19 }, (_, i) => 24100 + i * 50);
+const OI_SPOT = 24812;
+
+const mixHash = (s) => {
+  let h = 2166136261;
+  for (const c of s) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+};
+
+export function OiChainCard() {
+  const rows = OI_STRIKES.map((strike) => {
+    const h = mixHash(`oi-${strike}`);
+    const dist = Math.abs(strike - OI_SPOT) / 50;
+    const nearBoost = Math.max(0, 60 - dist * 9);
+    return {
+      strike,
+      callOi: +(((h % 140) / 10) + 0.4 + (strike > OI_SPOT ? nearBoost / 3 : nearBoost / 6)).toFixed(1),
+      putOi: +((((h >> 3) % 140) / 10) + 0.3 + (strike < OI_SPOT ? nearBoost / 3 : nearBoost / 6)).toFixed(1),
+      callChg: (h >> 5) % 240 - 110,
+      putChg: (h >> 7) % 220 - 100,
+      iv: (9 + ((h >> 2) % 120) / 10).toFixed(1),
+      callLtp: Math.max(0.05, (OI_SPOT - strike) * 0.55 + (h % 60)).toFixed(2),
+      putLtp: Math.max(0.05, (strike - 24000) * 0.42 + ((h >> 4) % 50)).toFixed(2),
+    };
+  });
+  const maxOi = Math.max(...rows.map((r) => Math.max(r.callOi, r.putOi)));
+  const barW = (v) => `${Math.max(3, (v / maxOi) * 100)}%`;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-night-line bg-ink" data-testid="oi-chain">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-night-line px-4 py-3">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-cloud">OI · Option Chain — Nifty 50</p>
+        <div className="flex items-center gap-3 font-mono text-[9px] font-bold">
+          <span className="inline-flex items-center gap-1.5 text-rose-400"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Call OI</span>
+          <span className="inline-flex items-center gap-1.5 text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Put OI</span>
+        </div>
+      </div>
+      <div className="max-h-[430px] overflow-y-auto" data-lenis-prevent>
+        <table className="w-full text-left font-mono text-[10px]">
+          <thead className="sticky top-0 bg-ink">
+            <tr className="border-b border-night-line text-cloud/70">
+              <th className="px-2 py-2 font-semibold">OI Chg%</th>
+              <th className="px-2 py-2 font-semibold">OI-Lakh</th>
+              <th className="px-2 py-2 font-semibold text-right">Call OI</th>
+              <th className="px-2 py-2 text-center font-semibold text-paper">Strike</th>
+              <th className="px-2 py-2 font-semibold">IV</th>
+              <th className="px-2 py-2 font-semibold">Put OI</th>
+              <th className="px-2 py-2 font-semibold">OI-Lakh</th>
+              <th className="px-2 py-2 text-right font-semibold">OI Chg%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const atm = Math.abs(r.strike - OI_SPOT) <= 25;
+              return (
+                <tr key={r.strike} data-testid={`oi-row-${r.strike}`}
+                  className={`border-b border-night-line/60 transition-colors hover:bg-white/5 ${atm ? "bg-ember/10" : ""}`}>
+                  <td className={`px-2 py-1.5 font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.callChg >= 0 ? `${r.callChg}%` : `${r.callChg}%`}</td>
+                  <td className="px-2 py-1.5 text-cloud">{r.callOi}</td>
+                  <td className="px-2 py-1.5">
+                    <div className="flex justify-end"><div className="h-2 rounded-l-sm bg-rose-500/80" style={{ width: barW(r.callOi) }} /></div>
+                  </td>
+                  <td className={`px-2 py-1.5 text-center font-bold ${atm ? "text-ember" : "text-paper"}`}>{r.strike}</td>
+                  <td className="px-2 py-1.5 text-cloud">{r.iv}</td>
+                  <td className="px-2 py-1.5">
+                    <div className="flex justify-start"><div className="h-2 rounded-r-sm bg-signal/80" style={{ width: barW(r.putOi) }} /></div>
+                  </td>
+                  <td className="px-2 py-1.5 text-cloud">{r.putOi}</td>
+                  <td className={`px-2 py-1.5 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.putChg >= 0 ? `${r.putChg}%` : `${r.putChg}%`}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="border-t border-night-line px-4 py-2.5 text-[10px] text-cloud/60">
+        Demo option chain — randomly generated test data, not real open interest.
       </p>
     </div>
   );

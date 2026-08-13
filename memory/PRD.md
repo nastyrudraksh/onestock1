@@ -25,7 +25,7 @@ Build a modern, premium, responsive fintech and automated trading services homep
 - Custom Algo Builder: toggleable indicator chips in the drawer — selected indicators drive the direction and confidence calculation
 - Signal History Log on Market page: timestamped list (instrument, direction, confidence) of the last 8 generated signals with Clear button
 - NIFTY 50 Stocks board on Market page: two-column Advance (green/bullish) | Decline (red/bearish) chart docked as a left rail beside the instruments grid; Advances/Declines counts and split summary bar; stacks above instruments on mobile
-- OI moved into Market page: horizontal stacked bar chart (Support % green vs Resistance % red, hover tooltips) sits on the right side of the Nifty 50 stocks rail, above the instruments grid; separate OI sidebar page removed
+- OI moved into Market page: compact dark option-chain table (Strike, IV, Call OI red bars, Put OI green bars, OI-Lakh, OI Chg% per side, ATM strike highlighted) sits on the right side of the Nifty 50 stocks rail, above the instruments grid; separate OI sidebar page removed; sticky note no longer shows indicator readings (direction, entry/target/stop-loss, confidence, custom algo inputs only)
 - Alert colors: green toast for BUY CALL, red toast for BUY PUT; 3x blinking dots; two-tone beep on 90%+ strong signals
 - Rebrand: TradeSense → OneStock across the whole app
 - All module views interactive inside the panel: broker connect/disconnect, wallet quick-deposit with live balance update, transaction All/Buy/Sell filters, settings toggles + risk inputs + save toast
