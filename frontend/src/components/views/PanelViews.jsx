@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload } from "lucide-react";
+import { Download, Play, ShoppingCart, XCircle, TicketCheck, BadgeCheck, Upload, Check } from "lucide-react";
 import { Shell } from "./ModuleViews";
 import { Reveal } from "../landing/Reveal";
 import { AreaTrend, PnlBars, growthData } from "../landing/charts";
@@ -354,6 +354,9 @@ export function TicketsView({ onBack }) {
   );
 }
 
+
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
 const INSTRUMENTS = [
   { name: "NIFTY 50 OPTION", px: "24,812.75", chg: "+0.84%" },
   { name: "NIFTY 50 FUTURE", px: "24,905.30", chg: "+0.79%" },
@@ -375,138 +378,165 @@ const INSTRUMENTS = [
   { name: "NATURAL GAS", px: "248.60", chg: "+0.96%" },
 ];
 
-const PLANS = [
-  { name: "MONTHLY PLAN", price: "₹999" },
-  { name: "QUARTERLY", price: "₹2,499" },
-  { name: "HALF YEARLY", price: "₹4,499" },
-  { name: "YEARLY", price: "₹7,999" },
-  { name: "LIFE TIME", price: "₹19,999" },
-];
-
-const TIERS = ["REGULAR", "PREMIUM", "SEPARATE DISCUSSION", "VIP", "VVIP"];
-
-const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
 export function MarketView({ onBack }) {
   const [instrument, setInstrument] = useState(null);
-  const [plan, setPlan] = useState(null);
-  const [tier, setTier] = useState(null);
-
   const pickInstrument = (name) => {
     setInstrument(name);
     toast.success(`${name} activated`, { description: "Demo only — market added to your watchlist." });
   };
-  const pickPlan = (p) => {
-    setPlan(p.name);
-    toast.success(`${p.name} selected`, { description: `Demo checkout at ${p.price} — no payment processed.` });
-  };
-  const pickTier = (t) => {
-    setTier(t);
-    if (t === "SEPARATE DISCUSSION") toast.info("Separate discussion requested", { description: "Demo only — our team will reach out." });
-    else toast.success(`${t} tier selected`, { description: "Demo only — no account change was made." });
-  };
 
   return (
     <Shell testid="market-view" onBack={onBack} title="Market"
-      desc="Choose your instruments, plan duration, and account tier. Everything is selectable in this demo.">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Reveal className="xl:col-span-2">
-          <div className="rounded-2xl border border-edge bg-white p-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
-            <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {INSTRUMENTS.map((m, i) => {
-                const active = instrument === m.name;
-                return (
-                  <button
-                    key={m.name}
-                    data-testid={`market-instrument-${slug(m.name)}`}
-                    onClick={() => pickInstrument(m.name)}
-                    className={`group flex items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
-                      active ? "border-signal bg-signal/5 shadow-glow-signal" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-lift"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      {active && <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse-dot" />}
-                      <span className={`text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
-                    </span>
-                    <span className="text-right">
-                      <span className="block font-mono text-[11px] font-semibold text-ink">₹{m.px}</span>
-                      <span className={`block font-mono text-[10px] font-semibold ${m.chg.startsWith("+") ? "text-signal" : "text-rose-500"}`}>{m.chg}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+      desc="Choose the instrument you want to trade. All prices shown are demo data.">
+      <Reveal>
+        <div className="rounded-2xl border border-edge bg-white p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
+          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {INSTRUMENTS.map((m) => {
+              const active = instrument === m.name;
+              return (
+                <button
+                  key={m.name}
+                  data-testid={`market-instrument-${slug(m.name)}`}
+                  onClick={() => pickInstrument(m.name)}
+                  className={`group flex items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
+                    active ? "border-signal bg-signal/5 shadow-glow-signal" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-lift"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {active && <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse-dot" />}
+                    <span className={`text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
+                  </span>
+                  <span className="text-right">
+                    <span className="block font-mono text-[11px] font-semibold text-ink">₹{m.px}</span>
+                    <span className={`block font-mono text-[10px] font-semibold ${m.chg.startsWith("+") ? "text-signal" : "text-rose-500"}`}>{m.chg}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        </Reveal>
-
-        <div className="space-y-6">
-          <Reveal delay={0.08}>
-            <div className="rounded-2xl border border-edge bg-white p-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Plan Duration</p>
-              <div className="mt-4 space-y-2.5">
-                {PLANS.map((p) => {
-                  const active = plan === p.name;
-                  return (
-                    <button
-                      key={p.name}
-                      data-testid={`market-plan-${slug(p.name)}`}
-                      onClick={() => pickPlan(p)}
-                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3.5 transition-all duration-200 active:scale-[0.98] ${
-                        active ? "border-ember bg-ember/5 shadow-glow-ember" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20"
-                      }`}
-                    >
-                      <span className={`text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate"}`}>{p.name}</span>
-                      <span className="font-mono text-xs font-semibold text-ink">{p.price}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.14}>
-            <div className="rounded-2xl border border-edge bg-white p-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Account Tier</p>
-              <div className="mt-4 space-y-2.5">
-                {TIERS.map((t) => {
-                  const active = tier === t;
-                  return (
-                    <button
-                      key={t}
-                      data-testid={`market-tier-${slug(t)}`}
-                      onClick={() => pickTier(t)}
-                      className={`w-full rounded-xl border px-4 py-3.5 text-xs font-bold tracking-wide transition-all duration-200 active:scale-[0.98] ${
-                        active ? "border-ink bg-ink text-white" : "border-edge bg-paper text-slate hover:-translate-y-0.5 hover:border-ink/20 hover:text-ink"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </Reveal>
         </div>
-      </div>
-
-      {(instrument || plan || tier) && (
+      </Reveal>
+      {instrument && (
         <Reveal delay={0.1}>
           <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-edge bg-white p-5" data-testid="market-selection-summary">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Your Setup</p>
-            {instrument && <span className="rounded-full bg-signal/10 px-3 py-1 font-mono text-xs font-bold text-signal">{instrument}</span>}
-            {plan && <span className="rounded-full bg-ember/10 px-3 py-1 font-mono text-xs font-bold text-ember">{plan}</span>}
-            {tier && <span className="rounded-full bg-ink px-3 py-1 font-mono text-xs font-bold text-white">{tier}</span>}
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Selected Market</p>
+            <span className="rounded-full bg-signal/10 px-3 py-1 font-mono text-xs font-bold text-signal">{instrument}</span>
             <button
               data-testid="market-apply-button"
-              onClick={() => toast.success("Market setup applied", { description: "Demo only — configuration was not saved." })}
+              onClick={() => toast.success("Market applied", { description: "Demo only — configuration was not saved." })}
               className="ml-auto rounded-full bg-ember px-6 py-2.5 text-xs font-semibold text-white transition-all hover:brightness-110 active:scale-95"
             >
-              Apply Setup
+              Apply
             </button>
           </div>
         </Reveal>
       )}
+    </Shell>
+  );
+}
+
+const PLANS = [
+  { name: "MONTHLY PLAN", price: "₹999", per: "/month", cta: "Start Free", popular: false,
+    features: ["Basic analytics", "Portfolio monitoring", "Market insights", "Email support"] },
+  { name: "QUARTERLY", price: "₹2,499", per: "/quarter", cta: "Get Started", popular: true,
+    features: ["Advanced analytics", "Automated strategies", "Broker connectivity", "Risk management", "Priority support"] },
+  { name: "HALF YEARLY", price: "₹4,499", per: "/6 months", cta: "Get Started", popular: false,
+    features: ["Everything in Quarterly", "Multiple accounts", "Advanced reporting", "Strategy templates"] },
+  { name: "YEARLY", price: "₹7,999", per: "/year", cta: "Get Started", popular: false,
+    features: ["Everything in Half Yearly", "Dedicated support", "API access", "Quarterly strategy reviews"] },
+  { name: "LIFE TIME", price: "₹19,999", per: " one-time", cta: "Contact Sales", popular: false,
+    features: ["Everything in Yearly", "Lifetime updates", "Unlimited strategies", "Founding member badge"] },
+];
+
+const TIERS = [
+  { name: "REGULAR", tag: "Included", cta: "Select", popular: false,
+    features: ["Standard execution speed", "1 broker account", "Email support", "Community access"] },
+  { name: "PREMIUM", tag: "Add-on", cta: "Select", popular: true,
+    features: ["Priority execution", "3 broker accounts", "Priority support", "Advanced alerts"] },
+  { name: "SEPARATE DISCUSSION", tag: "Custom", cta: "Contact Us", popular: false,
+    features: ["Custom requirements", "Dedicated manager", "Custom integrations"] },
+  { name: "VIP", tag: "Add-on", cta: "Select", popular: false,
+    features: ["Fastest execution", "5 broker accounts", "24/7 priority line", "Strategy review calls"] },
+  { name: "VVIP", tag: "Add-on", cta: "Select", popular: false,
+    features: ["Institutional routing", "Unlimited accounts", "Dedicated dealer desk", "Custom SLAs"] },
+];
+
+const PickCard = ({ item, popular, tag, onAction, testid }) => (
+  <div
+    data-testid={testid}
+    className={`relative flex h-full flex-col rounded-2xl border bg-white p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lift ${
+      popular ? "border-ember shadow-glow-ember" : "border-edge"
+    }`}
+  >
+    {popular && (
+      <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-ember px-4 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+        Most Popular
+      </span>
+    )}
+    <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate">{item.name}</p>
+    <div className="mt-4 flex items-baseline gap-1">
+      <span className="font-display text-4xl font-bold tracking-tighter">{item.price || item.tag}</span>
+      {item.per && <span className="font-mono text-sm text-slate">{item.per}</span>}
+    </div>
+    <ul className="mt-6 flex-1 space-y-3">
+      {item.features.map((f) => (
+        <li key={f} className="flex items-center gap-2.5">
+          <span className={`flex h-5 w-5 items-center justify-center rounded-full ${popular ? "bg-ember/10" : "bg-signal/10"}`}>
+            <Check className={`h-3 w-3 ${popular ? "text-ember" : "text-signal"}`} strokeWidth={3} />
+          </span>
+          <span className="text-sm text-ink">{f}</span>
+        </li>
+      ))}
+    </ul>
+    <button
+      data-testid={`${testid}-cta`}
+      onClick={() => onAction(item)}
+      className={`mt-8 w-full rounded-full py-3.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
+        popular ? "bg-ember text-white hover:brightness-110" : "border border-ink/10 bg-white text-ink hover:bg-ink/5"
+      }`}
+    >
+      {item.cta}
+    </button>
+  </div>
+);
+
+export function PlanView({ onBack }) {
+  const select = (p) =>
+    p.cta === "Contact Sales"
+      ? toast.info("Sales request noted", { description: "Demo only — our team will reach out." })
+      : toast.success(`${p.name} selected`, { description: `Demo checkout at ${p.price}${p.per} — no payment processed.` });
+
+  return (
+    <Shell testid="plan-view" onBack={onBack} title="Monthly Plan"
+      desc="Pick a subscription duration. Prices shown are demo content.">
+      <div className="grid grid-cols-1 gap-6 pt-3 sm:grid-cols-2 xl:grid-cols-3">
+        {PLANS.map((p, i) => (
+          <Reveal key={p.name} delay={i * 0.06} y={30}>
+            <PickCard item={p} popular={p.popular} onAction={select} testid={`plan-card-${slug(p.name)}`} />
+          </Reveal>
+        ))}
+      </div>
+    </Shell>
+  );
+}
+
+export function TierView({ onBack }) {
+  const select = (t) =>
+    t.cta === "Contact Us"
+      ? toast.info("Separate discussion requested", { description: "Demo only — our team will reach out." })
+      : toast.success(`${t.name} tier selected`, { description: "Demo only — no account change was made." });
+
+  return (
+    <Shell testid="tier-view" onBack={onBack} title="Account Tier"
+      desc="Choose the service tier for your account. Demo content only.">
+      <div className="grid grid-cols-1 gap-6 pt-3 sm:grid-cols-2 xl:grid-cols-3">
+        {TIERS.map((t, i) => (
+          <Reveal key={t.name} delay={i * 0.06} y={30}>
+            <PickCard item={t} popular={t.popular} onAction={select} testid={`tier-card-${slug(t.name)}`} />
+          </Reveal>
+        ))}
+      </div>
     </Shell>
   );
 }
