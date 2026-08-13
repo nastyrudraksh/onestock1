@@ -1,0 +1,189 @@
+{
+  "theme": "hybrid",
+  "archetype": "SWISS & HIGH-CONTRAST with Old Money Tech elements",
+  "typography": {
+    "headings": {
+      "fontFamily": "'Cabinet Grotesk', sans-serif",
+      "instruction": "Import via CDN or Google Fonts if unavailable. Must use tracking-tight for all headings. Never center-align by default."
+    },
+    "body": {
+      "fontFamily": "'Manrope', sans-serif",
+      "instruction": "Clean, crisp geometric sans for readability in financial contexts."
+    },
+    "mono": {
+      "fontFamily": "'JetBrains Mono', monospace",
+      "instruction": "Use for tickers, numbers, and stats to give a premium technical feel."
+    },
+    "scale": {
+      "h1": "text-5xl sm:text-6xl tracking-tighter font-medium",
+      "h2": "text-4xl sm:text-5xl tracking-tight font-medium",
+      "h3": "text-2xl sm:text-3xl tracking-tight",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed text-muted-foreground",
+      "overline": "text-xs font-mono uppercase tracking-[0.2em]"
+    }
+  },
+  "colors": {
+    "light_theme": {
+      "background": "#FBFBFC",
+      "foreground": "#0A0F1C",
+      "card": "#FFFFFF",
+      "border": "#E5E7EB",
+      "muted": "#F3F4F6",
+      "muted_foreground": "#6B7280"
+    },
+    "dark_sections": {
+      "background": "#0A0F1C",
+      "foreground": "#FBFBFC",
+      "card": "#131C2F",
+      "border": "#1E293B",
+      "muted": "#1E293B",
+      "muted_foreground": "#94A3B8"
+    },
+    "accents": {
+      "primary": "#F05D23",
+      "primary_foreground": "#FFFFFF",
+      "positive": "#00D084",
+      "positive_glow": "rgba(0, 208, 132, 0.2)"
+    },
+    "rules": [
+      "Never use pure black or pure white. Always tint slightly.",
+      "Green is strictly reserved for positive financial numbers/charts.",
+      "Orange is for primary CTAs and highlights.",
+      "Dark sections (Navy/Charcoal) should be used for the 'Platform Preview' and 'Final CTA' to create high contrast."
+    ]
+  },
+  "layouts": {
+    "spacing": {
+      "section_padding": "py-24 sm:py-32",
+      "container_padding": "px-6 sm:px-12 max-w-7xl mx-auto",
+      "gap": "gap-8 sm:gap-12"
+    },
+    "grids": {
+      "features": "Bento Grid Mode A (Tetris Grid). Mix spans (col-span-12, col-span-8, col-span-4) to create asymmetry and tension.",
+      "stats": "grid-cols-2 md:grid-cols-4 gap-8 with vertical dividers (border-r) on desktop.",
+      "pricing": "grid-cols-1 md:grid-cols-3 gap-8. Center card is 'MOST POPULAR' and slightly scaled up with orange accent border."
+    }
+  },
+  "components": {
+    "buttons": "Pill-shaped (rounded-full). Primary buttons use orange background, text-white, hover:brightness-110, active:scale-95 transition-transform. Secondary buttons are border border-foreground/10 hover:bg-foreground/5.",
+    "cards": "Subtle roundness (rounded-2xl). Flat, rectangular, 1px subtle border (border-border), no shadow by default. On hover: slight lift (-translate-y-1) and subtle shadow (shadow-xl).",
+    "navbar": "Glassmorphism: sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/40. Links visible on desktop, mobile hamburger.",
+    "accordion": "Use Shadcn Accordion for FAQ. Minimalist borders, no background, plus/minus icon indicators."
+  },
+  "sections_blueprint": [
+    {
+      "name": "Navbar",
+      "features": ["Logo", "Links: Home, Services, How It Works, Features, Pricing, About Us, Contact", "Login / Get Started CTAs", "Sticky Glassmorphism"]
+    },
+    {
+      "name": "Hero",
+      "theme": "Light",
+      "features": [
+        "Badge: 'NEXT-GEN TRADING TECHNOLOGY' (Mono font, uppercase, tracking-widest, green accent dot)",
+        "Heading: 'Trade Smarter With Powerful Automation' (Masked line-by-line text reveal animation)",
+        "CTAs: Get Started (Orange), View Demo (Ghost)",
+        "Visual: Futuristic trading dashboard mockup (CSS/SVG based or Shadcn Recharts, abstract UI) with fictional data (Portfolio value, P&L in green, charts) floating on a subtle grid background.",
+        "Elements: Glowing/floating data pills using framer-motion."
+      ]
+    },
+    {
+      "name": "Marquee / Stats",
+      "theme": "Light",
+      "features": [
+        "Animated Counters using framer-motion useInView.",
+        "Stats: 10K+ Active Users, ₹50Cr+ Trading Volume, 99.9% Uptime, 24/7 Monitoring",
+        "Large typography with JetBrains Mono."
+      ]
+    },
+    {
+      "name": "Services",
+      "theme": "Light",
+      "features": [
+        "6 Service Cards in an asymmetrical Bento Grid.",
+        "Trading Automation, Broker Connectivity, Portfolio Tools, Market Insights, Risk Management, API Access."
+      ]
+    },
+    {
+      "name": "How It Works",
+      "theme": "Light",
+      "features": ["3-step process. Minimalist connecting lines between steps."]
+    },
+    {
+      "name": "Platform Preview",
+      "theme": "Dark Navy/Charcoal",
+      "features": [
+        "Heading: 'One Platform. Complete Trading Control.'",
+        "Split section: Text on left, complex interactive dashboard mock on right.",
+        "Mockup uses charts (Recharts) showing performance analytics, buy/sell indicators in green/red.",
+        "Glowing ambient shadow behind the mockup."
+      ]
+    },
+    {
+      "name": "Pricing",
+      "theme": "Light",
+      "features": [
+        "3 tiers: ₹999 / ₹2,499 / ₹4,999 per month.",
+        "Middle card elevated, highlighted with Orange."
+      ]
+    },
+    {
+      "name": "Testimonials",
+      "theme": "Light",
+      "features": [
+        "3 cards, offset grid layout."
+      ]
+    },
+    {
+      "name": "FAQ",
+      "theme": "Light",
+      "features": ["Accordion layout, clean typography."]
+    },
+    {
+      "name": "Final CTA",
+      "theme": "Dark Navy/Charcoal",
+      "features": ["Massive text, abstract background texture, Orange CTA button."]
+    },
+    {
+      "name": "Footer",
+      "theme": "Dark Navy/Charcoal",
+      "features": ["Links, Risk Disclaimer (small text), copyright."]
+    }
+  ],
+  "motion": {
+    "libraries": ["framer-motion", "lenis"],
+    "scroll_reveal": "initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-100px' }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}",
+    "text_reveal": "SplitText technique using framer-motion staggerChildren.",
+    "floating_elements": "animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}"
+  },
+  "media": {
+    "images": [
+      {
+        "category": "Testimonials",
+        "description": "Professional user 1",
+        "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODY2MDY2ODN8MA&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "category": "Testimonials",
+        "description": "Professional user 2",
+        "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODY2MDY2ODN8MA&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "category": "Testimonials",
+        "description": "Professional user 3",
+        "url": "https://images.unsplash.com/photo-1676989880361-091e12efc056?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODY2MDY2ODN8MA&ixlib=rb-4.1.0&q=85"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "You must build a cohesive landing page using the exact fonts, color palette, and component styles specified.",
+    "DO NOT use generic centered alignments. Favor left alignment and asymmetrical grids.",
+    "The Hero Section dashboard mockup must be built using Shadcn Recharts or CSS/SVG graphics, not images.",
+    "Implement Lenis for smooth scrolling.",
+    "All interactive elements MUST include `data-testid` attribute (e.g. data-testid='pricing-cta-button').",
+    "Install and use 'lucide-react' or 'phosphor-icons' for iconography.",
+    "Ensure the Indian Rupee (₹) symbol is used exactly where specified.",
+    "Avoid the 'AI slop' look. No basic gradients. Use 1px borders, subtle noise/texture where applicable, and generous padding.",
+    "No fully transparent backgrounds in sticky navbars or dropdowns."
+  ]
+}
