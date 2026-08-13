@@ -35,7 +35,7 @@ const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, pref
       </span>
       <div>
         <p className="font-display text-lg font-bold leading-none tracking-tight">
-          Trade<span className="text-ember">Sense</span>
+          One<span className="text-ember">Stock</span>
         </p>
         <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.28em] text-slate">User Panel</p>
       </div>

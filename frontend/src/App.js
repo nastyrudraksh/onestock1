@@ -22,7 +22,7 @@ import { scrollToSection } from "@/lib/scroll";
 
 export default function App() {
   const [cta, setCta] = useState({ open: false, mode: "signup" });
-  const [view, setView] = useState("panel");
+  const [view, setView] = useState("website");
   const openCta = (mode = "signup") => setCta({ open: true, mode });
 
   const navigate = (v) => {

@@ -7,7 +7,7 @@ import {
 import { Reveal } from "../landing/Reveal";
 import { Switch } from "@/components/ui/switch";
 
-const Shell = ({ title, desc, onBack, testid, children }) => (
+export const Shell = ({ title, desc, onBack, testid, children }) => (
   <section data-testid={testid} className="min-h-[70vh] px-2 py-4 sm:px-4">
     <div className="mx-auto max-w-5xl">
       <button
@@ -103,7 +103,7 @@ export function WalletView({ onBack }) {
   return (
     <Shell testid="wallet-view" onBack={onBack}
       title="Fund Wallet"
-      desc="Add funds to your TradeSense wallet for subscriptions and activation fees.">
+      desc="Add funds to your OneStock wallet for subscriptions and activation fees.">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Reveal className="lg:col-span-3">
           <div className="relative overflow-hidden rounded-2xl bg-ink p-7 text-paper shadow-panel">

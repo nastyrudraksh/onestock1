@@ -1,7 +1,7 @@
-# TradeSense — Fintech SaaS Homepage (PRD)
+# OneStock — Fintech SaaS Homepage (PRD)
 
 ## Original Problem Statement
-Build a modern, premium, responsive fintech and automated trading services homepage for a fictional brand "TradeSense" (tagline: "Smarter Trading. Automated Decisions. Better Control.") covering: sticky navbar, hero with trading dashboard mockup, animated stats, 6 services, 3-step how-it-works, dark platform preview, why-choose-us, analytics split, 3-tier pricing (₹), testimonials, FAQ accordion, final CTA, footer with risk disclaimer. All data fictional; no real credentials; no profit guarantees.
+Build a modern, premium, responsive fintech and automated trading services homepage for a fictional brand "OneStock" (tagline: "Smarter Trading. Automated Decisions. Better Control.") covering: sticky navbar, hero with trading dashboard mockup, animated stats, 6 services, 3-step how-it-works, dark platform preview, why-choose-us, analytics split, 3-tier pricing (₹), testimonials, FAQ accordion, final CTA, footer with risk disclaimer. All data fictional; no real credentials; no profit guarantees.
 
 ## Architecture
 - Frontend-only React SPA (CRA + craco), Tailwind CSS, framer-motion, lenis (smooth scroll), recharts (fictional charts), lucide-react icons, shadcn/ui (accordion, dialog, sonner).

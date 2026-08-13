@@ -57,7 +57,7 @@ export default function Navbar({ onCta, onSection, onNavigate }) {
             <TrendingUp className="h-5 w-5" strokeWidth={2.4} />
           </span>
           <span className="font-display text-xl font-bold tracking-tight">
-            Trade<span className="text-ember">Sense</span>
+            One<span className="text-ember">Stock</span>
           </span>
         </button>
 

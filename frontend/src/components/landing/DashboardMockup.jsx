@@ -25,7 +25,7 @@ export default function DashboardMockup() {
         <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" />
         <span className="ml-3 rounded-md border border-edge bg-white px-2.5 py-0.5 font-mono text-[10px] text-slate">
-          app.tradesense.io/dashboard
+          app.onestock.io/dashboard
         </span>
         <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-signal">
           <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse-dot" /> Live

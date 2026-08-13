@@ -3,7 +3,7 @@ import { Reveal, SectionTag } from "./Reveal";
 
 const TESTIMONIALS = [
   {
-    quote: "TradeSense simplified the way I monitor my trading strategies. Everything is available from one dashboard.",
+    quote: "OneStock simplified the way I monitor my trading strategies. Everything is available from one dashboard.",
     name: "Aarav Mehta", role: "Active Trader",
     img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODY2MDY2ODN8MA&ixlib=rb-4.1.0&q=85",
   },

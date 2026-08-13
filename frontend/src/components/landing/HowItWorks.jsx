@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Reveal, SectionTag } from "./Reveal";
 
 const STEPS = [
-  { n: "01", title: "Create Your Account", desc: "Register and create your secure TradeSense account." },
+  { n: "01", title: "Create Your Account", desc: "Register and create your secure OneStock account." },
   { n: "02", title: "Connect Your Broker", desc: "Connect a supported broker account and configure your trading preferences." },
   { n: "03", title: "Activate Your Strategy", desc: "Select your strategy, configure risk settings, and start monitoring your trades." },
 ];

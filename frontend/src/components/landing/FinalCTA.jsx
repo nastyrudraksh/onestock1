@@ -14,7 +14,7 @@ export default function FinalCTA({ onCta }) {
         animate={{ x: ["0%", "-12%"] }}
         transition={{ duration: 30, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
       >
-        TRADESENSE
+        ONESTOCK
       </motion.span>
 
       <div className="relative mx-auto max-w-7xl px-6 sm:px-12">

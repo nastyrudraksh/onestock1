@@ -15,7 +15,7 @@ export default function WhyChooseUs() {
     <section id="features" data-testid="why-choose-us-section" className="bg-paper py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 sm:px-12">
         <Reveal>
-          <SectionTag>Why TradeSense</SectionTag>
+          <SectionTag>Why OneStock</SectionTag>
           <h2 className="mt-4 max-w-2xl font-display text-4xl sm:text-5xl font-bold tracking-tight">
             Built for Traders Who Demand More
           </h2>

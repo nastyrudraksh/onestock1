@@ -7,13 +7,13 @@ import {
 import { Reveal, SectionTag } from "./Reveal";
 
 const FAQS = [
-  { q: "What is TradeSense?", a: "TradeSense is a financial technology platform that brings broker connectivity, strategy automation, portfolio monitoring, and market analytics together in a single dashboard — built for modern traders who want control without complexity." },
+  { q: "What is OneStock?", a: "OneStock is a financial technology platform that brings broker connectivity, strategy automation, portfolio monitoring, and market analytics together in a single dashboard — built for modern traders who want control without complexity." },
   { q: "How does automated trading work?", a: "You define a strategy and risk rules, connect your broker, and the platform monitors the market and executes orders on your behalf according to your configuration. You can pause, modify, or stop any strategy at any time." },
   { q: "Which brokers are supported?", a: "The platform is designed to connect with leading Indian brokerage accounts through secure, official API-based flows. The exact broker list shown in this prototype is illustrative demo content." },
   { q: "Is my account secure?", a: "Yes. We use encrypted connections, isolated execution environments, and never store your broker passwords. Connections are established through official broker authentication flows, and you can revoke access at any time." },
   { q: "Can I monitor my trades in real time?", a: "Absolutely. Positions, orders, P&L, and strategy status stream live to your dashboard, with instant alerts for fills, stops, and risk-limit events." },
   { q: "Can I cancel my subscription?", a: "Yes. There are no lock-ins. You can upgrade, downgrade, or cancel your plan at any time from your account settings, and your access continues until the end of the billing cycle." },
-  { q: "Do you provide trading strategies?", a: "We provide strategy templates and automation tooling for educational and execution purposes. TradeSense does not provide investment advice, and no strategy guarantees profits." },
+  { q: "Do you provide trading strategies?", a: "We provide strategy templates and automation tooling for educational and execution purposes. OneStock does not provide investment advice, and no strategy guarantees profits." },
   { q: "How can I contact support?", a: "You can reach us through the Help Center, by email, or via priority support channels on higher plans. Our platform itself is monitored 24/7." },
 ];
 

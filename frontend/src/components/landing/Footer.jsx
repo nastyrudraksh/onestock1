@@ -50,7 +50,7 @@ export default function Footer() {
                 <TrendingUp className="h-5 w-5" strokeWidth={2.4} />
               </span>
               <span className="font-display text-xl font-bold tracking-tight text-paper">
-                Trade<span className="text-ember">Sense</span>
+                One<span className="text-ember">Stock</span>
               </span>
             </div>
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-cloud">
@@ -83,13 +83,13 @@ export default function Footer() {
         <div className="mt-14 border-t border-night-line pt-8">
           <p className="max-w-4xl text-[11px] leading-relaxed text-cloud/70" data-testid="risk-disclaimer">
             Risk Disclosure: Trading in equities, derivatives, and other securities involves substantial risk of loss
-            and is not suitable for every investor. Past performance is not indicative of future results. TradeSense
+            and is not suitable for every investor. Past performance is not indicative of future results. OneStock
             is a technology platform and does not provide investment advice, portfolio management, or guaranteed
             returns. This website is a design prototype — all data, statistics, pricing, and testimonials shown are
             fictional and for demonstration purposes only.
           </p>
           <div className="mt-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <p className="font-mono text-xs text-cloud">© 2026 TradeSense. All rights reserved.</p>
+            <p className="font-mono text-xs text-cloud">© 2026 OneStock. All rights reserved.</p>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-cloud/60">
               Secure · Transparent · Built for Modern Traders
             </p>

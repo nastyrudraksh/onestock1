@@ -12,12 +12,12 @@ import {
 const COPY = {
   signup: {
     title: "Create your free account",
-    desc: "Start exploring TradeSense in under a minute. No card required.",
+    desc: "Start exploring OneStock in under a minute. No card required.",
     cta: "Create Free Account",
   },
   login: {
     title: "Welcome back",
-    desc: "Log in to your TradeSense dashboard.",
+    desc: "Log in to your OneStock dashboard.",
     cta: "Login",
   },
   contact: {
