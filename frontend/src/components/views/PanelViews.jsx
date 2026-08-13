@@ -630,7 +630,11 @@ export function MarketView({ onBack }) {
     <Shell testid="market-view" onBack={onBack} title="Market"
       desc="Blinking lights show the live test-algo direction (green = buy call, red = buy put). Open any Signal panel for details.">
       <div className={`transition-[padding] duration-300 ${signalFor ? "xl:pr-[340px]" : ""}`}>
-      <Reveal>
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+        <Reveal className="w-full shrink-0 xl:w-80">
+          <NiftyStocksBoard compact />
+        </Reveal>
+        <Reveal className="min-w-0 flex-1">
         <div className="rounded-2xl border border-edge bg-white p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
@@ -650,7 +654,7 @@ export function MarketView({ onBack }) {
               </span>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 2xl:grid-cols-3">
             {INSTRUMENTS.map((m) => {
               const active = instrument === m.name;
               const sig = buildSignal(m, tick, enabled);
@@ -691,11 +695,8 @@ export function MarketView({ onBack }) {
             })}
           </div>
         </div>
-      </Reveal>
-
-      <Reveal delay={0.05}>
-        <NiftyStocksBoard />
-      </Reveal>
+        </Reveal>
+      </div>
 
       <Reveal delay={0.08}>
         <div className="mt-6 rounded-2xl border border-edge bg-white p-6" data-testid="signal-history">
@@ -877,41 +878,80 @@ const NIFTY_STOCKS = [
   { name: "JSWSTEEL", chg: "+0.83%" }, { name: "ADANIENT", chg: "-1.24%" }, { name: "HCLTECH", chg: "+0.57%" },
 ];
 
-export function NiftyStocksBoard() {
-  const advances = NIFTY_STOCKS.filter((s) => s.chg.startsWith("+")).length;
-  const declines = NIFTY_STOCKS.length - advances;
+export function NiftyStocksBoard({ compact = false }) {
+  const up = NIFTY_STOCKS.filter((s) => s.chg.startsWith("+"));
+  const down = NIFTY_STOCKS.filter((s) => !s.chg.startsWith("+"));
+
+  const stockRow = (s) => {
+    const gain = s.chg.startsWith("+");
+    return (
+      <div
+        key={s.name}
+        data-testid={`stock-${slug(s.name)}`}
+        className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${gain ? "bg-signal/5" : "bg-rose-500/5"}`}
+      >
+        <span className="font-mono text-[11px] font-bold text-ink">{s.name}</span>
+        <span className={`font-mono text-[10px] font-semibold ${gain ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
+      </div>
+    );
+  };
+
+  if (compact) {
+    return (
+      <div className="rounded-2xl border border-edge bg-white p-5" data-testid="nifty-stocks-board">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Nifty 50 Stocks</p>
+        <div className="mt-3 flex items-center justify-between font-mono text-[11px] font-bold">
+          <span className="text-signal" data-testid="advances-count">Advance {up.length}</span>
+          <span className="text-rose-500" data-testid="declines-count">Decline {down.length}</span>
+        </div>
+        <div className="mt-2 flex h-2 overflow-hidden rounded-full" data-testid="advance-decline-bar">
+          <div className="bg-signal transition-all duration-700" style={{ width: `${(up.length / NIFTY_STOCKS.length) * 100}%` }} />
+          <div className="bg-rose-500 transition-all duration-700" style={{ width: `${(down.length / NIFTY_STOCKS.length) * 100}%` }} />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <p className="mb-2 border-b border-signal/20 pb-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-signal">
+              Advance · Bullish
+            </p>
+            <div className="space-y-1.5">{up.map(stockRow)}</div>
+          </div>
+          <div>
+            <p className="mb-2 border-b border-rose-500/20 pb-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-rose-500">
+              Decline · Bearish
+            </p>
+            <div className="space-y-1.5">{down.map(stockRow)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-6 rounded-2xl border border-edge bg-white p-6" data-testid="nifty-stocks-board">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Nifty 50 Stocks · Advance / Decline</p>
         <div className="flex items-center gap-3 font-mono text-[11px] font-bold">
-          <span className="text-signal" data-testid="advances-count">Advances {advances}</span>
-          <span className="text-rose-500" data-testid="declines-count">Declines {declines}</span>
+          <span className="text-signal" data-testid="advances-count">Advance {up.length}</span>
+          <span className="text-rose-500" data-testid="declines-count">Decline {down.length}</span>
         </div>
       </div>
       <div className="mt-3 flex h-2.5 overflow-hidden rounded-full" data-testid="advance-decline-bar">
-        <div className="bg-signal transition-all duration-700" style={{ width: `${(advances / NIFTY_STOCKS.length) * 100}%` }} />
-        <div className="bg-rose-500 transition-all duration-700" style={{ width: `${(declines / NIFTY_STOCKS.length) * 100}%` }} />
+        <div className="bg-signal transition-all duration-700" style={{ width: `${(up.length / NIFTY_STOCKS.length) * 100}%` }} />
+        <div className="bg-rose-500 transition-all duration-700" style={{ width: `${(down.length / NIFTY_STOCKS.length) * 100}%` }} />
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-        {NIFTY_STOCKS.map((s) => {
-          const up = s.chg.startsWith("+");
-          return (
-            <div
-              key={s.name}
-              data-testid={`stock-${slug(s.name)}`}
-              className="flex items-center justify-between rounded-xl border border-edge bg-paper px-3.5 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
-            >
-              <span>
-                <span className="block font-mono text-xs font-bold text-ink">{s.name}</span>
-                <span className={`block font-mono text-[10px] font-semibold ${up ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
-              </span>
-              <span className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider ${up ? "bg-signal/10 text-signal" : "bg-rose-500/10 text-rose-500"}`}>
-                {up ? "Advance" : "Decline"}
-              </span>
-            </div>
-          );
-        })}
+      <div className="mt-5 grid grid-cols-2 gap-5">
+        <div>
+          <p className="mb-2.5 border-b border-signal/20 pb-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-signal">
+            Advance · Bullish ({up.length})
+          </p>
+          <div className="space-y-1.5">{up.map(stockRow)}</div>
+        </div>
+        <div>
+          <p className="mb-2.5 border-b border-rose-500/20 pb-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-rose-500">
+            Decline · Bearish ({down.length})
+          </p>
+          <div className="space-y-1.5">{down.map(stockRow)}</div>
+        </div>
       </div>
     </div>
   );
