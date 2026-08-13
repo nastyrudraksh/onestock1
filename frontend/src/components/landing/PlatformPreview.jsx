@@ -32,7 +32,7 @@ const STRATEGIES = [
 
 export default function PlatformPreview({ onCta }) {
   return (
-    <section data-testid="platform-preview-section" className="relative overflow-hidden bg-ink py-24 sm:py-32">
+    <section id="platform" data-testid="platform-preview-section" className="relative overflow-hidden bg-ink py-24 sm:py-32">
       <div className="pointer-events-none absolute inset-0 bg-grid-dark" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-[400px] w-[700px] -translate-x-1/2 rounded-full bg-signal/10 blur-[140px]" />
       <div className="pointer-events-none absolute inset-0 bg-noise" />

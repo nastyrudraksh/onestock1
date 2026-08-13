@@ -19,7 +19,7 @@ const FAQS = [
 
 export default function FAQ() {
   return (
-    <section data-testid="faq-section" className="bg-paper py-24 sm:py-32">
+    <section id="faq" data-testid="faq-section" className="bg-paper py-24 sm:py-32">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 sm:px-12 lg:grid-cols-5">
         <Reveal className="lg:col-span-2">
           <SectionTag>FAQ</SectionTag>

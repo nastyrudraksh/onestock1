@@ -12,7 +12,7 @@ const BULLETS = [
 
 export default function Analytics() {
   return (
-    <section data-testid="analytics-section" className="border-y border-edge bg-white py-24 sm:py-32">
+    <section id="analytics" data-testid="analytics-section" className="border-y border-edge bg-white py-24 sm:py-32">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-6 sm:px-12 lg:grid-cols-2">
         <Reveal>
           <SectionTag>Performance Analytics</SectionTag>

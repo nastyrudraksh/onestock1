@@ -52,7 +52,7 @@ export default function Hero({ onCta }) {
       id="home"
       data-testid="hero-section"
       onMouseMove={onMouseMove}
-      className="relative overflow-hidden bg-paper bg-grid-light pt-[72px]"
+      className="relative overflow-hidden bg-paper bg-grid-light pt-6 lg:pt-10"
     >
       <div className="pointer-events-none absolute -top-32 right-[-10%] h-[480px] w-[480px] rounded-full bg-signal/10 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-[-20%] left-[-8%] h-[420px] w-[420px] rounded-full bg-ember/10 blur-[120px]" />
