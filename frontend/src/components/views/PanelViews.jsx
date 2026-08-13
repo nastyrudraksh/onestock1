@@ -381,6 +381,27 @@ const INSTRUMENTS = [
 
 const hashOf = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
 
+let audioCtx;
+const playAlertBeep = () => {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const t = audioCtx.currentTime;
+    [880, 1174.66].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.08, t + i * 0.12 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.12 + 0.11);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t + i * 0.12);
+      osc.stop(t + i * 0.12 + 0.12);
+    });
+  } catch (e) { /* audio unavailable */ }
+};
+
 const INDICATOR_NAMES = ["RSI (14)", "MACD", "EMA 9/21 Cross", "VWAP", "Supertrend"];
 
 const buildSignal = (m, tick = 0, enabled = [true, true, true, true, true]) => {
@@ -572,6 +593,7 @@ export function MarketView({ onBack }) {
       .map((m) => ({ m, sig: buildSignal(m, tick, enabled) }))
       .filter((x) => x.sig.confidence >= 90)
       .slice(0, 2);
+    if (strong.length > 0) playAlertBeep();
     strong.forEach(({ m, sig }) => {
       const fn = sig.buy ? toast.success : toast.error;
       fn(`Strong Signal: ${m.name}`, {
@@ -647,7 +669,7 @@ export function MarketView({ onBack }) {
                   <span className="flex items-center gap-2">
                     <span
                       data-testid={`market-light-${slug(m.name)}`}
-                      className={`h-2 w-2 shrink-0 rounded-full animate-pulse-dot transition-colors duration-500 ${sig.buy ? "bg-signal" : "bg-rose-500"}`}
+                      className={`h-6 w-6 shrink-0 rounded-full animate-pulse-dot ring-4 transition-colors duration-500 ${sig.buy ? "bg-signal ring-signal/20" : "bg-rose-500 ring-rose-500/20"}`}
                     />
                     <span>
                       <span className={`block text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
