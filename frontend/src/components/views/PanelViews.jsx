@@ -413,19 +413,17 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
   return (
     <AnimatePresence>
       {instrument && sig && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm"
-          />
-          <motion.aside
-            data-testid="signal-drawer"
-            data-lenis-prevent
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l border-edge bg-white p-6 shadow-panel"
-          >
+        <motion.aside
+          data-testid="signal-drawer"
+          data-lenis-prevent
+          initial={{ opacity: 0, y: 40, rotate: 5 }}
+          animate={{ opacity: 1, y: 0, rotate: 1.2 }}
+          exit={{ opacity: 0, y: 40, rotate: 5 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          style={{ transformOrigin: "top right" }}
+          className="fixed bottom-4 right-4 top-20 z-50 w-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-lg bg-[#FFF6D6] p-5 pt-7 shadow-[0_28px_60px_-12px_rgba(10,15,28,0.35)] ring-1 ring-amber-200"
+        >
+          <div className="pointer-events-none absolute -top-2.5 left-1/2 h-5 w-24 -translate-x-1/2 -rotate-2 rounded-sm bg-white/70 shadow-sm ring-1 ring-black/5" />
             <div className="flex items-start justify-between">
               <div>
                 <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-slate">
@@ -549,7 +547,6 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
               This is not investment advice.
             </p>
           </motion.aside>
-        </>
       )}
     </AnimatePresence>
   );
@@ -568,6 +565,22 @@ export function MarketView({ onBack }) {
     const id = setInterval(() => setTick((t) => t + 1), 4000);
     return () => clearInterval(id);
   }, [live]);
+
+  useEffect(() => {
+    if (tick === 0) return;
+    const strong = INSTRUMENTS
+      .map((m) => ({ m, sig: buildSignal(m, tick, enabled) }))
+      .filter((x) => x.sig.confidence >= 90)
+      .slice(0, 2);
+    strong.forEach(({ m, sig }) => {
+      const fn = sig.buy ? toast.success : toast.error;
+      fn(`Strong Signal: ${m.name}`, {
+        id: `strong-${slug(m.name)}-${tick}`,
+        description: `${sig.dir} · ${sig.confidence}% confidence · demo test model`,
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   useEffect(() => {
     if (!signalFor) return;
@@ -594,6 +607,7 @@ export function MarketView({ onBack }) {
   return (
     <Shell testid="market-view" onBack={onBack} title="Market"
       desc="Blinking lights show the live test-algo direction (green = buy call, red = buy put). Open any Signal panel for details.">
+      <div className={`transition-[padding] duration-300 ${signalFor ? "xl:pr-[340px]" : ""}`}>
       <Reveal>
         <div className="rounded-2xl border border-edge bg-white p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -706,6 +720,7 @@ export function MarketView({ onBack }) {
           </div>
         </Reveal>
       )}
+      </div>
       <SignalDrawer
         instrument={signalFor}
         tick={tick}
