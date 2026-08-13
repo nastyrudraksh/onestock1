@@ -353,3 +353,160 @@ export function TicketsView({ onBack }) {
     </Shell>
   );
 }
+
+const INSTRUMENTS = [
+  { name: "NIFTY 50 OPTION", px: "24,812.75", chg: "+0.84%" },
+  { name: "NIFTY 50 FUTURE", px: "24,905.30", chg: "+0.79%" },
+  { name: "BANK NIFTY OPTION", px: "51,240.30", chg: "+1.12%" },
+  { name: "BANK NIFTY FUTURE", px: "51,388.00", chg: "+1.05%" },
+  { name: "SENSEX", px: "81,506.20", chg: "+0.61%" },
+  { name: "SENSEX FUTURE", px: "81,842.75", chg: "+0.58%" },
+  { name: "MIDCAP", px: "58,412.40", chg: "-0.22%" },
+  { name: "MIDCAP FUTURE", px: "58,631.10", chg: "-0.18%" },
+  { name: "BTC", px: "1,04,82,300", chg: "+2.14%" },
+  { name: "BTC FUTURE", px: "1,05,10,850", chg: "+2.02%" },
+  { name: "ETHUSD OPTION", px: "3,84,120", chg: "+1.46%" },
+  { name: "ETH FUTURE", px: "3,86,540", chg: "+1.31%" },
+  { name: "SILVER OPTION", px: "92,480", chg: "-0.34%" },
+  { name: "SILVER FUTURE", px: "92,915", chg: "-0.29%" },
+  { name: "GOLD OPTION", px: "78,240", chg: "+0.42%" },
+  { name: "GOLD FUTURE", px: "78,690", chg: "+0.38%" },
+  { name: "CRUDEOIL", px: "6,842", chg: "-1.08%" },
+  { name: "NATURAL GAS", px: "248.60", chg: "+0.96%" },
+];
+
+const PLANS = [
+  { name: "MONTHLY PLAN", price: "₹999" },
+  { name: "QUARTERLY", price: "₹2,499" },
+  { name: "HALF YEARLY", price: "₹4,499" },
+  { name: "YEARLY", price: "₹7,999" },
+  { name: "LIFE TIME", price: "₹19,999" },
+];
+
+const TIERS = ["REGULAR", "PREMIUM", "SEPARATE DISCUSSION", "VIP", "VVIP"];
+
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+export function MarketView({ onBack }) {
+  const [instrument, setInstrument] = useState(null);
+  const [plan, setPlan] = useState(null);
+  const [tier, setTier] = useState(null);
+
+  const pickInstrument = (name) => {
+    setInstrument(name);
+    toast.success(`${name} activated`, { description: "Demo only — market added to your watchlist." });
+  };
+  const pickPlan = (p) => {
+    setPlan(p.name);
+    toast.success(`${p.name} selected`, { description: `Demo checkout at ${p.price} — no payment processed.` });
+  };
+  const pickTier = (t) => {
+    setTier(t);
+    if (t === "SEPARATE DISCUSSION") toast.info("Separate discussion requested", { description: "Demo only — our team will reach out." });
+    else toast.success(`${t} tier selected`, { description: "Demo only — no account change was made." });
+  };
+
+  return (
+    <Shell testid="market-view" onBack={onBack} title="Market"
+      desc="Choose your instruments, plan duration, and account tier. Everything is selectable in this demo.">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <Reveal className="xl:col-span-2">
+          <div className="rounded-2xl border border-edge bg-white p-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Instruments</p>
+            <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {INSTRUMENTS.map((m, i) => {
+                const active = instrument === m.name;
+                return (
+                  <button
+                    key={m.name}
+                    data-testid={`market-instrument-${slug(m.name)}`}
+                    onClick={() => pickInstrument(m.name)}
+                    className={`group flex items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
+                      active ? "border-signal bg-signal/5 shadow-glow-signal" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-lift"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {active && <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse-dot" />}
+                      <span className={`text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate group-hover:text-ink"}`}>{m.name}</span>
+                    </span>
+                    <span className="text-right">
+                      <span className="block font-mono text-[11px] font-semibold text-ink">₹{m.px}</span>
+                      <span className={`block font-mono text-[10px] font-semibold ${m.chg.startsWith("+") ? "text-signal" : "text-rose-500"}`}>{m.chg}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Reveal>
+
+        <div className="space-y-6">
+          <Reveal delay={0.08}>
+            <div className="rounded-2xl border border-edge bg-white p-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Plan Duration</p>
+              <div className="mt-4 space-y-2.5">
+                {PLANS.map((p) => {
+                  const active = plan === p.name;
+                  return (
+                    <button
+                      key={p.name}
+                      data-testid={`market-plan-${slug(p.name)}`}
+                      onClick={() => pickPlan(p)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3.5 transition-all duration-200 active:scale-[0.98] ${
+                        active ? "border-ember bg-ember/5 shadow-glow-ember" : "border-edge bg-paper hover:-translate-y-0.5 hover:border-ink/20"
+                      }`}
+                    >
+                      <span className={`text-xs font-bold tracking-wide ${active ? "text-ink" : "text-slate"}`}>{p.name}</span>
+                      <span className="font-mono text-xs font-semibold text-ink">{p.price}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.14}>
+            <div className="rounded-2xl border border-edge bg-white p-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Account Tier</p>
+              <div className="mt-4 space-y-2.5">
+                {TIERS.map((t) => {
+                  const active = tier === t;
+                  return (
+                    <button
+                      key={t}
+                      data-testid={`market-tier-${slug(t)}`}
+                      onClick={() => pickTier(t)}
+                      className={`w-full rounded-xl border px-4 py-3.5 text-xs font-bold tracking-wide transition-all duration-200 active:scale-[0.98] ${
+                        active ? "border-ink bg-ink text-white" : "border-edge bg-paper text-slate hover:-translate-y-0.5 hover:border-ink/20 hover:text-ink"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </div>
+
+      {(instrument || plan || tier) && (
+        <Reveal delay={0.1}>
+          <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-edge bg-white p-5" data-testid="market-selection-summary">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Your Setup</p>
+            {instrument && <span className="rounded-full bg-signal/10 px-3 py-1 font-mono text-xs font-bold text-signal">{instrument}</span>}
+            {plan && <span className="rounded-full bg-ember/10 px-3 py-1 font-mono text-xs font-bold text-ember">{plan}</span>}
+            {tier && <span className="rounded-full bg-ink px-3 py-1 font-mono text-xs font-bold text-white">{tier}</span>}
+            <button
+              data-testid="market-apply-button"
+              onClick={() => toast.success("Market setup applied", { description: "Demo only — configuration was not saved." })}
+              className="ml-auto rounded-full bg-ember px-6 py-2.5 text-xs font-semibold text-white transition-all hover:brightness-110 active:scale-95"
+            >
+              Apply Setup
+            </button>
+          </div>
+        </Reveal>
+      )}
+    </Shell>
+  );
+}

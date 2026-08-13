@@ -17,6 +17,8 @@ Build a modern, premium, responsive fintech and automated trading services homep
 ## Implemented (2026-08-13)
 - App now boots into a USER PANEL (default view): left sidebar (Dashboard, Broker Details, Fund Wallet, Transactions, Settings + View Website / Logout), NOT LIVE status card with live progress tied to Account Progress steps, sticky top bar (breadcrumb, wallet chip ₹4,250.00, Enabled badge, Demo User), mobile slide-in drawer
 - Panel dashboard: Account Progress (4 steps — Select Broker, Activation Fee, Broker Validation, KYC Verification — with working "Complete step" button that advances progress and flips to LIVE at 4/4), Subscription card (Renew), Wallet card (Deposit Funds → wallet), Connected Broker card, 6 stat cards, Recent Trades with View All
+- Market page in panel sidebar: 18 selectable instruments (NIFTY/BANK NIFTY/SENSEX/MIDCAP options & futures, BTC, ETH, Silver, Gold, Crude Oil, Natural Gas) with demo prices, 5 plan durations, 5 account tiers (Regular/Premium/Separate Discussion/VIP/VVIP), selection summary + Apply Setup — all working with toasts
+- Rebrand: TradeSense → OneStock across the whole app
 - All module views interactive inside the panel: broker connect/disconnect, wallet quick-deposit with live balance update, transaction All/Buy/Sell filters, settings toggles + risk inputs + save toast
 - Landing website preserved behind "View Website"; navbar Get Started opens the panel, Platform dropdown opens panel modules; demo amounts originalised (no values copied from user's reference)
 - Sticky glassmorphism navbar with mobile hamburger, section scroll via Lenis
