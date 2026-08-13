@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, Menu, X } from "lucide-react";
+import { TrendingUp, Menu, X, ChevronDown, Landmark, Wallet, Receipt, Settings } from "lucide-react";
 import { scrollToSection } from "@/lib/scroll";
 
 const LINKS = [
@@ -13,9 +13,17 @@ const LINKS = [
   { label: "Contact", id: "contact" },
 ];
 
-export default function Navbar({ onCta }) {
+const MODULES = [
+  { icon: Landmark, label: "Broker Details", view: "broker" },
+  { icon: Wallet, label: "Fund Wallet", view: "wallet" },
+  { icon: Receipt, label: "Transactions", view: "transactions" },
+  { icon: Settings, label: "Settings", view: "settings" },
+];
+
+export default function Navbar({ onCta, onSection, onNavigate }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [platformOpen, setPlatformOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -25,7 +33,9 @@ export default function Navbar({ onCta }) {
 
   const go = (id) => {
     setOpen(false);
-    scrollToSection(id);
+    setPlatformOpen(false);
+    if (onSection) onSection(id);
+    else scrollToSection(id);
   };
 
   return (
@@ -62,6 +72,40 @@ export default function Navbar({ onCta }) {
               {l.label}
             </button>
           ))}
+          <div className="relative">
+            <button
+              data-testid="nav-platform-dropdown"
+              onClick={() => setPlatformOpen((o) => !o)}
+              className="flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-medium text-slate transition-colors duration-200 hover:bg-mist hover:text-ink"
+            >
+              Platform
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${platformOpen ? "rotate-180" : ""}`} />
+            </button>
+            <AnimatePresence>
+              {platformOpen && (
+                <motion.div
+                  data-testid="nav-platform-menu"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute right-0 top-full mt-2 w-60 rounded-2xl border border-edge bg-white p-2 shadow-lift"
+                >
+                  {MODULES.map((m) => (
+                    <button
+                      key={m.view}
+                      data-testid={`nav-module-${m.view}`}
+                      onClick={() => { setPlatformOpen(false); onNavigate(m.view); }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-slate transition-colors hover:bg-mist hover:text-ink"
+                    >
+                      <m.icon className="h-4 w-4 text-ember" />
+                      {m.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <div className="hidden lg:flex items-center gap-3">
@@ -110,6 +154,18 @@ export default function Navbar({ onCta }) {
                   className="rounded-xl px-4 py-3 text-left text-base font-medium text-ink transition-colors hover:bg-mist"
                 >
                   {l.label}
+                </button>
+              ))}
+              <p className="px-4 pt-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-slate">Platform</p>
+              {MODULES.map((m) => (
+                <button
+                  key={m.view}
+                  data-testid={`nav-mobile-module-${m.view}`}
+                  onClick={() => { setOpen(false); onNavigate(m.view); }}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-left text-base font-medium text-ink transition-colors hover:bg-mist"
+                >
+                  <m.icon className="h-4 w-4 text-ember" />
+                  {m.label}
                 </button>
               ))}
               <div className="mt-3 flex gap-3">

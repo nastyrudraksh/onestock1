@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import Lenis from "lenis";
 import "@/App.css";
 import { Toaster } from "@/components/ui/sonner";
-import Sidebar from "@/components/landing/Sidebar";
-import TopBar from "@/components/landing/TopBar";
+import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
 import Stats from "@/components/landing/Stats";
 import Marquee from "@/components/landing/Marquee";
@@ -21,17 +20,8 @@ import SignupDialog from "@/components/landing/SignupDialog";
 import { BrokerView, WalletView, TransactionsView, SettingsView } from "@/components/views/ModuleViews";
 import { scrollToSection } from "@/lib/scroll";
 
-const CRUMBS = {
-  home: "Dashboard",
-  broker: "Broker Details",
-  wallet: "Fund Wallet",
-  transactions: "Transactions",
-  settings: "Settings",
-};
-
 export default function App() {
   const [cta, setCta] = useState({ open: false, mode: "signup" });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [view, setView] = useState("home");
   const openCta = (mode = "signup") => setCta({ open: true, mode });
 
@@ -67,40 +57,30 @@ export default function App() {
 
   return (
     <div className="App min-h-screen bg-paper text-ink font-sans" data-testid="app-root">
-      <Sidebar
-        onCta={openCta}
-        mobileOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        view={view}
-        onNavigate={navigate}
-        onSection={goSection}
-      />
-      <div className="flex min-h-screen flex-col lg:pl-64">
-        <TopBar onMenu={() => setSidebarOpen(true)} crumb={CRUMBS[view]} />
-        <main>
-          {view === "home" && (
-            <>
-              <Hero onCta={openCta} />
-              <Stats />
-              <Marquee />
-              <Services />
-              <HowItWorks />
-              <PlatformPreview onCta={openCta} />
-              <WhyChooseUs />
-              <Analytics />
-              <Pricing onCta={openCta} />
-              <Testimonials />
-              <FAQ />
-              <FinalCTA onCta={openCta} />
-            </>
-          )}
-          {view === "broker" && <BrokerView onBack={() => navigate("home")} />}
-          {view === "wallet" && <WalletView onBack={() => navigate("home")} />}
-          {view === "transactions" && <TransactionsView onBack={() => navigate("home")} />}
-          {view === "settings" && <SettingsView onBack={() => navigate("home")} />}
-        </main>
-        <Footer />
-      </div>
+      <Navbar onCta={openCta} onSection={goSection} onNavigate={navigate} />
+      <main>
+        {view === "home" && (
+          <>
+            <Hero onCta={openCta} />
+            <Stats />
+            <Marquee />
+            <Services />
+            <HowItWorks />
+            <PlatformPreview onCta={openCta} />
+            <WhyChooseUs />
+            <Analytics />
+            <Pricing onCta={openCta} />
+            <Testimonials />
+            <FAQ />
+            <FinalCTA onCta={openCta} />
+          </>
+        )}
+        {view === "broker" && <BrokerView onBack={() => navigate("home")} />}
+        {view === "wallet" && <WalletView onBack={() => navigate("home")} />}
+        {view === "transactions" && <TransactionsView onBack={() => navigate("home")} />}
+        {view === "settings" && <SettingsView onBack={() => navigate("home")} />}
+      </main>
+      <Footer />
       <SignupDialog
         open={cta.open}
         mode={cta.mode}

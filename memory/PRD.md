@@ -15,8 +15,9 @@ Build a modern, premium, responsive fintech and automated trading services homep
 - Fintech-curious visitor comparing plans
 
 ## Implemented (2026-08-13)
-- Dashboard app-shell layout (per user reference): fixed left sidebar with grouped menu (Menu / Finance / Support / Setting), NOT LIVE status card with animated progress bar, sticky top bar with breadcrumb, wallet balance, Enabled badge, demo user chip; mobile slide-in drawer
-- All sidebar buttons functional: section items smooth-scroll; Broker Details / Fund Wallet / Transactions / Settings open full module views with working demo actions (broker connect/disconnect toggles, wallet quick-deposit with live balance update, transaction All/Buy/Sell filters, settings switches + risk-limit inputs + save toast); breadcrumb updates per view
+- Final layout (per user choice): original top-navbar landing page — no sidebar. Working modules (Broker Details, Fund Wallet, Transactions, Settings) live in a "Platform" dropdown in the navbar (desktop) and a Platform group in the mobile hamburger menu
+- Demo amounts originalised (wallet ₹4,250.00 default; no amounts copied from the user's reference screenshot)
+- All module views interactive: broker connect/disconnect toggles, wallet quick-deposit with live balance update, transaction All/Buy/Sell filters, settings switches + risk inputs + save toast; Back to Dashboard returns home
 - Sticky glassmorphism navbar with mobile hamburger, section scroll via Lenis
 - Hero: masked line-by-line headline reveal, mouse-parallax 3D dashboard mockup (portfolio value, P&L, active trades, area + candlestick charts, buy/sell, activity), floating data pills, trust indicators
 - Stats: animated counters (10K+ users, ₹50Cr+ volume, 99.9% uptime, 24/7 monitoring)

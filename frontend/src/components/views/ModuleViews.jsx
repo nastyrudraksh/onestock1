@@ -8,7 +8,7 @@ import { Reveal } from "../landing/Reveal";
 import { Switch } from "@/components/ui/switch";
 
 const Shell = ({ title, desc, onBack, testid, children }) => (
-  <section data-testid={testid} className="min-h-[80vh] bg-paper bg-grid-light px-6 py-12 sm:px-12">
+  <section data-testid={testid} className="min-h-[80vh] bg-paper bg-grid-light px-6 pb-12 pt-28 sm:px-12">
     <div className="mx-auto max-w-5xl">
       <button
         data-testid={`${testid}-back-button`}
@@ -88,13 +88,13 @@ export function BrokerView({ onBack }) {
 }
 
 const WALLET_ACTIVITY = [
-  { label: "Deposit via UPI", amt: "+₹5,000.00", time: "Today, 11:20", up: true },
-  { label: "Activation fee", amt: "-₹999.00", time: "Yesterday, 16:42", up: false },
-  { label: "Referral credit", amt: "+₹180.00", time: "12 Aug, 09:15", up: true },
+  { label: "Deposit via UPI", amt: "+₹10,000.00", time: "Today, 11:20", up: true },
+  { label: "Activation fee", amt: "-₹2,499.00", time: "Yesterday, 16:42", up: false },
+  { label: "Referral credit", amt: "+₹1,200.00", time: "12 Aug, 09:15", up: true },
 ];
 
 export function WalletView({ onBack }) {
-  const [balance, setBalance] = useState(188.71);
+  const [balance, setBalance] = useState(4250.0);
   const deposit = (amt) => {
     setBalance((b) => +(b + amt).toFixed(2));
     toast.success(`₹${amt.toLocaleString("en-IN")} added to wallet`, { description: "Demo only — no real money moved." });
