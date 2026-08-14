@@ -113,7 +113,7 @@ const useWatchlist = () => {
 const StatMini = ({ l, v, tone }) => (
   <div className="px-1.5 py-0.5">
     <p className="font-mono text-[8px] uppercase tracking-wider text-[#777]">{l}</p>
-    <p className={`font-mono text-[11px] font-bold ${tone || "text-[#e5e5e5]"}`}>{v}</p>
+    <p className={`font-mono text-[10px] font-bold ${tone || "text-[#e5e5e5]"}`}>{v}</p>
   </div>
 );
 
@@ -141,7 +141,7 @@ function StockDetailDrawer({ stock, onClose, inWatch, onToggleWatch }) {
               <p className="font-mono text-sm font-bold text-white">{stock.sym}</p>
               <p className="font-mono text-[10px] text-[#888]">{stock.name} · {SECTOR_OF[stock.sym] || "Index"} · DEMO DATA</p>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <button data-testid="drawer-watchlist-toggle" onClick={() => onToggleWatch(stock)}
                 className={`flex h-7 w-7 items-center justify-center rounded border transition-colors ${inWatch ? "border-amber-400 bg-amber-400/10 text-amber-400" : "border-[#333] text-[#888] hover:text-white"}`}>
                 <Star className="h-3.5 w-3.5" fill={inWatch ? "currentColor" : "none"} />
@@ -402,7 +402,7 @@ export function MarketView({ onBack }) {
       <tr data-testid={`constituent-${slug(s.sym)}`} onClick={() => setDetailStock(s)}
         className="cursor-pointer border-b border-[#1c1c1c] transition-colors hover:bg-white/[0.05]">
         <td className="whitespace-nowrap px-2 py-1">
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1">
             <button
               data-testid={`watch-${slug(s.sym)}`}
               onClick={(e) => { e.stopPropagation(); toggleWatch(s); }}
@@ -439,7 +439,7 @@ export function MarketView({ onBack }) {
 
   const MoverTable = ({ title, list, tone }) => (
     <div className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]">
-      <p className={`border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.18em] ${tone}`}>{title}</p>
+      <p className={`border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] ${tone}`}>{title}</p>
       <table className="w-full font-mono text-[10px]">
         <tbody>
           {list.map((s) => (
@@ -458,7 +458,7 @@ export function MarketView({ onBack }) {
   return (
     <section data-testid="market-view" className="px-1 py-2 sm:px-2">
       <button data-testid="market-back-button" onClick={onBack}
-        className="mb-2 inline-flex items-center gap-1.5 rounded border border-edge bg-white px-2.5 py-1 font-mono text-[9px] font-semibold text-slate transition-colors hover:bg-mist hover:text-ink">
+        className="mb-2 inline-flex items-center gap-1 rounded border border-edge bg-white px-2 py-0.5 font-mono text-[9px] font-semibold text-slate transition-colors hover:bg-mist hover:text-ink">
         ← Back to Dashboard
       </button>
 
@@ -475,7 +475,7 @@ export function MarketView({ onBack }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 items-stretch gap-1.5 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-stretch gap-1 xl:grid-cols-3">
         {/* 1. MARKET HEADER */}
         <section className="rounded-sm border border-[#262626] bg-[#080808]" data-testid="terminal-header">
           <div className="flex flex-wrap items-center gap-2 border-b border-[#262626] px-2 py-1">
@@ -485,7 +485,7 @@ export function MarketView({ onBack }) {
               {INDEX_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
             <span className="font-mono text-[8px] text-[#777]">{stocks.length} Constituents</span>
-            <span className="hidden items-center gap-1.5 font-mono text-[8px] font-bold sm:flex">
+            <span className="hidden items-center gap-1 font-mono text-[8px] font-bold sm:flex">
               <span className="text-green-400" data-testid="advances-count">Advance {derived.advances.length}</span>
               <span className="text-red-400" data-testid="declines-count">Decline {derived.declines.length}</span>
               <span className="text-[#888]" data-testid="unchanged-count">Unchanged {derived.unchanged.length}</span>
@@ -498,12 +498,12 @@ export function MarketView({ onBack }) {
             ))}
             <span className="ml-auto flex items-center gap-2">
               <button data-testid="market-live-toggle" onClick={() => setLive((l) => !l)}
-                className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider transition-colors ${live ? "border-green-800 bg-green-950/60 text-green-400" : "border-[#333] bg-[#111] text-[#888]"}`}>
+                className={`inline-flex items-center gap-1 rounded border px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider transition-colors ${live ? "border-green-800 bg-green-950/60 text-green-400" : "border-[#333] bg-[#111] text-[#888]"}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-green-400 animate-pulse-dot" : "bg-[#666]"}`} />
                 {live ? "Live" : "Paused"}
               </button>
               <button data-testid="terminal-refresh" onClick={() => { setTick((t) => t + 1); toast.success("Data refreshed", { description: "Demo feed ticked forward." }); }}
-                className="inline-flex items-center gap-1.5 rounded border border-[#333] bg-[#111] px-2 py-1 font-mono text-[9px] font-semibold text-[#d7d7d7] transition-colors hover:bg-[#1a1a1a]">
+                className="inline-flex items-center gap-1 rounded border border-[#333] bg-[#111] px-2 py-1 font-mono text-[9px] font-semibold text-[#d7d7d7] transition-colors hover:bg-[#1a1a1a]">
                 <RefreshCw className="h-3 w-3" /> Refresh
               </button>
             </span>
@@ -578,12 +578,12 @@ export function MarketView({ onBack }) {
                 return (
                   <tr key={n} data-testid={`idxperf-${slug(n)}`} onClick={() => { setIndexName(n); setSectorFilter(null); }}
                     className={`cursor-pointer border-b border-[#1c1c1c] hover:bg-white/[0.05] ${n === indexName ? "bg-amber-400/5" : ""}`}>
-                    <td className={`px-2.5 py-1 font-bold ${n === indexName ? "text-amber-400" : "text-white"}`}>{n}</td>
-                    <td className="px-2.5 py-1 text-right text-[#e5e5e5]">{ix.px}</td>
-                    <td className={`px-2.5 py-1 text-right ${ixUp ? "text-green-400" : "text-red-400"}`}>
+                    <td className={`px-2 py-0.5 font-bold ${n === indexName ? "text-amber-400" : "text-white"}`}>{n}</td>
+                    <td className="px-2 py-0.5 text-right text-[#e5e5e5]">{ix.px}</td>
+                    <td className={`px-2 py-0.5 text-right ${ixUp ? "text-green-400" : "text-red-400"}`}>
                       {((parseFloat(ix.px.replace(/,/g, "")) * parseFloat(ix.chg)) / 100).toFixed(2)}
                     </td>
-                    <td className={`px-2.5 py-1 text-right font-bold ${ixUp ? "text-green-400" : "text-red-400"}`}>{ix.chg}</td>
+                    <td className={`px-2 py-0.5 text-right font-bold ${ixUp ? "text-green-400" : "text-red-400"}`}>{ix.chg}</td>
                   </tr>
                 );
               })}
@@ -619,7 +619,7 @@ export function MarketView({ onBack }) {
 
         {/* 3. ADVANCE / DECLINE / UNCHANGED */}
         <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="constituent-board">
-          <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
+          <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">{indexName} · Constituents</span>
             <span className="font-mono text-[9px] text-[#777]" data-testid="constituent-count">{visibleStocks.length}{sectorFilter ? ` / ${stocks.length}` : ""} shown</span>
             {sectorFilter && (
@@ -628,10 +628,10 @@ export function MarketView({ onBack }) {
                 {sectorFilter} ✕
               </button>
             )}
-            <span className="ml-auto flex items-center gap-1.5">{refreshBtn}<MinBtn id="min-board" collapsed={collapsed.board} onClick={() => togglePanel("board")} dark /></span>
+            <span className="ml-auto flex items-center gap-1">{refreshBtn}<MinBtn id="min-board" collapsed={collapsed.board} onClick={() => togglePanel("board")} dark /></span>
           </header>
           <Collapse open={!collapsed.board}>
-            <div className="max-h-[300px] overflow-y-auto p-2" data-lenis-prevent>
+            <div className="max-h-[260px] overflow-y-auto p-2" data-lenis-prevent>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <BoardGroup label="Advance" list={visibleStocks.filter((s) => s.chgPct > 0)} tone="up" />
                 <BoardGroup label="Decline" list={visibleStocks.filter((s) => s.chgPct < 0)} tone="down" />
@@ -644,7 +644,7 @@ export function MarketView({ onBack }) {
         </section>
 
         {/* 4. TOP GAINERS / TOP LOSERS */}
-        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2" data-testid="movers-panels">
+        <div className="grid grid-cols-1 gap-1 md:grid-cols-2" data-testid="movers-panels">
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-green-400">Top Gainers</span>
@@ -659,7 +659,7 @@ export function MarketView({ onBack }) {
               </span>
             </div>
             <Collapse open={!collapsed.movers}>
-              <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1">
+              <div className="grid grid-cols-1 gap-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1">
                 <MoverTable title={`Top ${gainerCount} Gainers`} list={derived.gainers} tone="text-green-400" />
               </div>
             </Collapse>
@@ -691,7 +691,7 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 6. VOLUME LEADERS + MARKET MOVERS */}
-        <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-1 lg:grid-cols-2">
           <TermPanel title="Volume Leaders" id="volume-panel" collapsed={collapsed.volmov} onToggle={() => togglePanel("volmov")}
             right={
               <span className="flex gap-1">
@@ -773,7 +773,7 @@ export function MarketView({ onBack }) {
             </span>
           }>
           <div className="p-2">
-            <div className="h-28">
+            <div className="h-24">
               {chartType === "Candle" ? (
                 <CandleChart className="h-full w-full" />
               ) : (
@@ -796,7 +796,7 @@ export function MarketView({ onBack }) {
                 </ResponsiveContainer>
               )}
             </div>
-            <div className="mt-1 h-8">
+            <div className="mt-0.5 h-6">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chart} margin={{ top: 0, right: 4, left: 4, bottom: 0 }}>
                   <Bar dataKey="vol" fill="#2a2a2a" isAnimationActive={false} />
@@ -809,7 +809,7 @@ export function MarketView({ onBack }) {
 
 
         {/* 10. OPTION CHAIN (existing) + 11. OI ACTIVITY */}
-        <div className="grid grid-cols-1 items-start gap-1.5 xl:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-1 xl:grid-cols-2">
           <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} />
           <TermPanel title="OI Activity" id="oiactivity-panel" collapsed={collapsed.oiactivity} onToggle={() => togglePanel("oiactivity")}>
             <table className="w-full font-mono text-[10px] [&_td]:border-r [&_td]:border-[#222] [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-[#222] [&_th:last-child]:border-r-0">
@@ -844,15 +844,15 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 12. FII/DII + 13. SENTIMENT */}
-        <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-1 lg:grid-cols-2">
           <TermPanel title="FII / DII Activity" id="fiidii-panel" collapsed={collapsed.fiidii} onToggle={() => togglePanel("fiidii")}
             right={<span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
             <table className="w-full font-mono text-[10px]">
               <thead>
                 <tr className="border-b border-[#262626] text-[#999]">
-                  <th className="px-2.5 py-1 text-left font-semibold">₹ Cr</th>
-                  <th className="px-2.5 py-1 text-right font-semibold">Today</th>
-                  <th className="px-2.5 py-1 text-right font-semibold">Yesterday</th>
+                  <th className="px-2 py-0.5 text-left font-semibold">₹ Cr</th>
+                  <th className="px-2 py-0.5 text-right font-semibold">Today</th>
+                  <th className="px-2 py-0.5 text-right font-semibold">Yesterday</th>
                 </tr>
               </thead>
               <tbody>
@@ -862,11 +862,11 @@ export function MarketView({ onBack }) {
                   ["DII Sell", 2680, 2890], ["DII Net", 560, 620],
                 ].map(([l, t, y]) => (
                   <tr key={l} className="border-b border-[#1c1c1c]">
-                    <td className={`px-2.5 py-1 ${l.includes("Net") ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{l}</td>
-                    <td className={`px-2.5 py-1 text-right font-bold ${l.includes("Net") ? (t >= 0 ? "text-green-400" : "text-red-400") : "text-[#e5e5e5]"}`}>
+                    <td className={`px-2 py-0.5 ${l.includes("Net") ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{l}</td>
+                    <td className={`px-2 py-0.5 text-right font-bold ${l.includes("Net") ? (t >= 0 ? "text-green-400" : "text-red-400") : "text-[#e5e5e5]"}`}>
                       {l.includes("Net") && t >= 0 ? "+" : ""}{t.toLocaleString("en-IN")}
                     </td>
-                    <td className={`px-2.5 py-1 text-right ${l.includes("Net") ? (y >= 0 ? "text-green-400" : "text-red-400") : "text-[#999]"}`}>
+                    <td className={`px-2 py-0.5 text-right ${l.includes("Net") ? (y >= 0 ? "text-green-400" : "text-red-400") : "text-[#999]"}`}>
                       {l.includes("Net") && y >= 0 ? "+" : ""}{y.toLocaleString("en-IN")}
                     </td>
                   </tr>
@@ -877,7 +877,7 @@ export function MarketView({ onBack }) {
 
           <TermPanel title="Market Sentiment" id="sentiment-panel" collapsed={collapsed.sentiment} onToggle={() => togglePanel("sentiment")}
             right={<span className="font-mono text-[9px] text-[#777]">DEMO / DERIVED INDICATOR</span>}>
-            <div className="p-2">
+            <div className="p-1.5">
               <div className="flex items-baseline justify-between">
                 <span className={`font-display text-2xl font-bold ${derived.sentiment >= 60 ? "text-green-400" : derived.sentiment >= 40 ? "text-amber-400" : "text-red-400"}`} data-testid="sentiment-score">
                   {derived.sentiment >= 60 ? "Bullish" : derived.sentiment >= 40 ? "Neutral" : "Bearish"}
@@ -898,9 +898,9 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 14. LIVE SIGNALS (existing) + WATCHLIST */}
-        <div className="grid grid-cols-1 items-start gap-1.5 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-1 xl:grid-cols-3">
           <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808] xl:col-span-2" data-testid="instruments-panel">
-            <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2 py-1">
+            <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
               <span className="font-mono text-[13px] font-bold uppercase tracking-[0.06em] text-amber-400">Instruments · Live Signals</span>
               <MinBtn id="min-inst" collapsed={collapsed.inst} onClick={() => togglePanel("inst")} dark />
             </header>
@@ -912,7 +912,7 @@ export function MarketView({ onBack }) {
                     <div key={m.name} role="button" tabIndex={0} data-testid={`market-instrument-${slug(m.name)}`}
                       onClick={() => setDetailStock({ sym: m.name, name: m.name, ltp: m.px.replace(/,/g, ""), chgPct: parseFloat(m.chg), volume: "2.4", oi: "—" })}
                       onKeyDown={(e) => e.key === "Enter" && setDetailStock(m)}
-                      className="group flex cursor-pointer items-center justify-between gap-2 rounded border border-[#262626] bg-[#0d0d0d] px-2 py-1 transition-colors hover:border-[#444]">
+                      className="group flex cursor-pointer items-center justify-between gap-1.5 rounded border border-[#262626] bg-[#0d0d0d] px-1.5 py-1 transition-colors hover:border-[#444]">
                       <span className="flex min-w-0 items-center gap-2">
                         <span data-testid={`market-light-${slug(m.name)}`}
                           className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors duration-500 ${sig.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
@@ -950,11 +950,11 @@ export function MarketView({ onBack }) {
                     <tr key={w.sym} data-testid={`watchlist-${slug(w.sym)}`}
                       onClick={() => setDetailStock(stocks.find((s) => s.sym === w.sym) || { ...w, volume: "—" })}
                       className="cursor-pointer border-b border-[#1c1c1c] hover:bg-white/[0.05]">
-                      <td className="px-2.5 py-1 font-bold text-white">
+                      <td className="px-2 py-0.5 font-bold text-white">
                         <Star className="mr-1 inline h-3 w-3 text-amber-400" fill="currentColor" />{w.sym}
                       </td>
-                      <td className="px-2.5 py-1 text-right text-[#e5e5e5]">{Number(w.ltp).toLocaleString("en-IN")}</td>
-                      <td className={`px-2.5 py-1 text-right font-bold ${w.chgPct >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      <td className="px-2 py-0.5 text-right text-[#e5e5e5]">{Number(w.ltp).toLocaleString("en-IN")}</td>
+                      <td className={`px-2 py-0.5 text-right font-bold ${w.chgPct >= 0 ? "text-green-400" : "text-red-400"}`}>
                         {w.chgPct >= 0 ? "+" : ""}{Number(w.chgPct).toFixed(2)}%
                       </td>
                     </tr>
@@ -1069,7 +1069,7 @@ export function MarketView({ onBack }) {
               { l: "Growth", v: growthType, set: setGrowthType, opts: ["Year-over-Year", "Quarter-over-Quarter"], id: "growth-type" },
               { l: "Period", v: periodicity, set: setPeriodicity, opts: ["Weekly", "Monthly"], id: "periodicity" },
             ].map((c) => (
-              <label key={c.id} className="flex items-center gap-1.5 font-mono text-[9px] text-[#999]">
+              <label key={c.id} className="flex items-center gap-1 font-mono text-[9px] text-[#999]">
                 {c.l}:
                 <select data-testid={`sales-${c.id}`} value={c.v} onChange={(e) => c.set(e.target.value)}
                   className="rounded border border-[#333] bg-[#050505] px-2 py-0.5 font-semibold text-[#d7d7d7] outline-none">
@@ -1106,7 +1106,7 @@ export function MarketView({ onBack }) {
 
         {/* SIGNAL HISTORY */}
         <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="signal-history">
-          <header className="flex items-center justify-between border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
+          <header className="flex items-center justify-between border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Signal History</span>
             {history.length > 0 && (
               <button data-testid="signal-history-clear" onClick={() => setHistory([])}
