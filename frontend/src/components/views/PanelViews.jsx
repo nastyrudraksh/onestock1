@@ -735,7 +735,7 @@ export function NiftyStocksBoard({ stocks, selectedIndex = "NIFTY 50", compact =
       <div
         key={s.name}
         data-testid={`stock-${slug(s.name)}`}
-        className={`flex items-center justify-between rounded-md px-2 py-1.5 ${gain ? "bg-signal/5" : "bg-rose-500/5"}`}
+        className={`flex items-center justify-between rounded-md px-2 py-1 ${gain ? "bg-signal/5" : "bg-rose-500/5"}`}
       >
         <span className="font-mono text-[10px] font-bold text-ink">{s.name}</span>
         <span className={`font-mono text-[9px] font-semibold ${gain ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
@@ -989,6 +989,16 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
               <div className="font-mono text-[11px] text-cloud">Total Put OI</div>
               <div className="font-mono text-[14px] font-bold text-paper">{totalPut}L</div>
             </div>
+            <div className="flex items-center gap-4">
+              <div className="font-mono text-[11px] text-cloud">Put − Call Diff</div>
+              <div
+                className={`font-mono text-[14px] font-bold ${Number(totalPut) - Number(totalCall) >= 0 ? "text-signal" : "text-rose-400"}`}
+                data-testid="oi-diff"
+              >
+                {Number(totalPut) - Number(totalCall) >= 0 ? "+" : ""}
+                {(Number(totalPut) - Number(totalCall)).toFixed(1)}L
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 border-b border-night-line px-4 py-2.5">
@@ -1019,7 +1029,7 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
           ))}
         </div>
         <div className="overflow-x-auto" data-lenis-prevent>
-          <table className="w-full text-left font-mono text-[10px]">
+          <table className="w-full text-left font-mono text-[10px] [&_td]:border-r [&_td]:border-[#222] [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-[#222] [&_th:last-child]:border-r-0">
             <thead>
               <tr className="border-b border-night-line text-cloud/70">
                 {show("callChg") && <th className="px-2 py-2 font-semibold">Call Chg%</th>}
@@ -1044,24 +1054,24 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
                     onClick={() => onStrike?.(r.strike)}
                     className={`cursor-pointer border-b border-night-line/60 transition-colors hover:bg-white/10 ${atm ? "bg-ember/10" : ""}`}
                   >
-                    {show("callChg") && <td className={`px-2 py-1.5 font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.callChg}%</td>}
+                    {show("callChg") && <td className={`px-2 py-1 font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.callChg}%</td>}
                     {show("callOi") && (
                       <>
-                        <td className="px-2 py-1.5 text-right font-bold text-white">{r.callOi}</td>
-                        <td className="px-2 py-1.5 text-right text-cloud">{maxCallOi.toFixed(1)}</td>
-                        <td className={`px-2 py-1.5 text-right font-bold ${maxCallOi - r.callOi === 0 ? "text-ember" : "text-slate"}`}>{(maxCallOi - r.callOi).toFixed(1)}</td>
+                        <td className="px-2 py-1 text-right font-bold text-white">{r.callOi}</td>
+                        <td className="px-2 py-1 text-right text-cloud">{maxCallOi.toFixed(1)}</td>
+                        <td className={`px-2 py-1 text-right font-bold ${maxCallOi - r.callOi === 0 ? "text-ember" : "text-slate"}`}>{(maxCallOi - r.callOi).toFixed(1)}</td>
                       </>
                     )}
-                    {show("strike") && <td className={`px-2 py-1.5 text-center font-bold ${atm ? "text-ember" : "text-paper"}`}>{r.strike}</td>}
-                    {show("iv") && <td className="px-2 py-1.5 text-cloud">{r.iv}</td>}
+                    {show("strike") && <td className={`px-2 py-1 text-center font-bold ${atm ? "text-ember" : "text-paper"}`}>{r.strike}</td>}
+                    {show("iv") && <td className="px-2 py-1 text-cloud">{r.iv}</td>}
                     {show("putOi") && (
                       <>
-                        <td className="px-2 py-1.5 text-right font-bold text-white">{r.putOi}</td>
-                        <td className="px-2 py-1.5 text-right text-cloud">{maxPutOi.toFixed(1)}</td>
-                        <td className={`px-2 py-1.5 text-right font-bold ${maxPutOi - r.putOi === 0 ? "text-ember" : "text-slate"}`}>{(maxPutOi - r.putOi).toFixed(1)}</td>
+                        <td className="px-2 py-1 text-right font-bold text-white">{r.putOi}</td>
+                        <td className="px-2 py-1 text-right text-cloud">{maxPutOi.toFixed(1)}</td>
+                        <td className={`px-2 py-1 text-right font-bold ${maxPutOi - r.putOi === 0 ? "text-ember" : "text-slate"}`}>{(maxPutOi - r.putOi).toFixed(1)}</td>
                       </>
                     )}
-                    {show("putChg") && <td className={`px-2 py-1.5 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.putChg}%</td>}
+                    {show("putChg") && <td className={`px-2 py-1 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.putChg}%</td>}
                   </tr>
                 );
               })}

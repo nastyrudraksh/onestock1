@@ -111,7 +111,7 @@ const useWatchlist = () => {
 };
 
 const StatMini = ({ l, v, tone }) => (
-  <div className="px-2 py-1">
+  <div className="px-1.5 py-0.5">
     <p className="font-mono text-[8px] uppercase tracking-wider text-[#777]">{l}</p>
     <p className={`font-mono text-[11px] font-bold ${tone || "text-[#e5e5e5]"}`}>{v}</p>
   </div>
@@ -444,7 +444,7 @@ export function MarketView({ onBack }) {
         ← Back to Dashboard
       </button>
 
-      <div className="space-y-2.5">
+      <div className="space-y-1.5">
         {/* 1. MARKET HEADER */}
         <section className="rounded-md border border-[#262626] bg-[#080808]" data-testid="terminal-header">
           <div className="flex flex-wrap items-center gap-2 border-b border-[#262626] px-2.5 py-1.5">
@@ -454,7 +454,7 @@ export function MarketView({ onBack }) {
               {INDEX_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
             <span className="font-mono text-[9px] text-[#777]">{stocks.length} Constituents</span>
-            <span className="hidden items-center gap-2.5 font-mono text-[9px] font-bold sm:flex">
+            <span className="hidden items-center gap-1.5 font-mono text-[9px] font-bold sm:flex">
               <span className="text-green-400" data-testid="advances-count">Advance {derived.advances.length}</span>
               <span className="text-red-400" data-testid="declines-count">Decline {derived.declines.length}</span>
               <span className="text-[#888]" data-testid="unchanged-count">Unchanged {derived.unchanged.length}</span>
@@ -568,7 +568,7 @@ export function MarketView({ onBack }) {
             <span className="ml-auto flex items-center gap-1.5">{refreshBtn}<MinBtn id="min-board" collapsed={collapsed.board} onClick={() => togglePanel("board")} dark /></span>
           </header>
           <Collapse open={!collapsed.board}>
-            <div className="max-h-[440px] overflow-y-auto p-2" data-lenis-prevent>
+            <div className="max-h-[400px] overflow-y-auto p-2" data-lenis-prevent>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <BoardGroup label="Advance" list={visibleStocks.filter((s) => s.chgPct > 0)} tone="up" />
                 <BoardGroup label="Decline" list={visibleStocks.filter((s) => s.chgPct < 0)} tone="down" />
@@ -581,7 +581,7 @@ export function MarketView({ onBack }) {
         </section>
 
         {/* 4. TOP GAINERS / TOP LOSERS */}
-        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2" data-testid="movers-panels">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2" data-testid="movers-panels">
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-green-400">Top Gainers</span>
@@ -596,7 +596,7 @@ export function MarketView({ onBack }) {
               </span>
             </div>
             <Collapse open={!collapsed.movers}>
-              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1">
+              <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1">
                 <MoverTable title={`Top ${gainerCount} Gainers`} list={derived.gainers} tone="text-green-400" />
               </div>
             </Collapse>
@@ -628,7 +628,7 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 6. VOLUME LEADERS + MARKET MOVERS */}
-        <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-2">
           <TermPanel title="Volume Leaders" id="volume-panel" collapsed={collapsed.volmov} onToggle={() => togglePanel("volmov")}
             right={
               <span className="flex gap-1">
@@ -710,7 +710,7 @@ export function MarketView({ onBack }) {
             </span>
           }>
           <div className="p-2">
-            <div className="h-44">
+            <div className="h-36">
               {chartType === "Candle" ? (
                 <CandleChart className="h-full w-full" />
               ) : (
@@ -733,7 +733,7 @@ export function MarketView({ onBack }) {
                 </ResponsiveContainer>
               )}
             </div>
-            <div className="mt-1 h-10">
+            <div className="mt-1 h-8">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chart} margin={{ top: 0, right: 4, left: 4, bottom: 0 }}>
                   <Bar dataKey="vol" fill="#2a2a2a" isAnimationActive={false} />
@@ -787,10 +787,10 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 10. OPTION CHAIN (existing) + 11. OI ACTIVITY */}
-        <div className="grid grid-cols-1 items-start gap-2.5 xl:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-1.5 xl:grid-cols-2">
           <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} />
           <TermPanel title="OI Activity" id="oiactivity-panel" collapsed={collapsed.oiactivity} onToggle={() => togglePanel("oiactivity")}>
-            <table className="w-full font-mono text-[10px]">
+            <table className="w-full font-mono text-[10px] [&_td]:border-r [&_td]:border-[#222] [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-[#222] [&_th:last-child]:border-r-0">
               <thead>
                 <tr className="border-b border-[#262626] text-[#999]">
                   {["Strike", "Call OI", "Call Δ%", "Put OI", "Put Δ%", "Signal"].map((h) => (
@@ -822,7 +822,7 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 12. FII/DII + 13. SENTIMENT */}
-        <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-2">
           <TermPanel title="FII / DII Activity" id="fiidii-panel" collapsed={collapsed.fiidii} onToggle={() => togglePanel("fiidii")}
             right={<span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
             <table className="w-full font-mono text-[10px]">
@@ -876,7 +876,7 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 14. LIVE SIGNALS (existing) + WATCHLIST */}
-        <div className="grid grid-cols-1 items-start gap-2.5 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-1.5 xl:grid-cols-3">
           <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808] xl:col-span-2" data-testid="instruments-panel">
             <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Instruments · Live Signals</span>
