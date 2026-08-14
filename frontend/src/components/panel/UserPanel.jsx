@@ -7,7 +7,8 @@ import {
   CandlestickChart, Tag,
 } from "lucide-react";
 import { BrokerView, WalletView, TransactionsView, SettingsView } from "../views/ModuleViews";
-import { MarketView, PlanView, TierView } from "../views/PanelViews";
+import { MarketView } from "../views/terminal";
+import { PlanView, TierView } from "../views/PanelViews";
 import { Reveal } from "../landing/Reveal";
 
 const MENU = [

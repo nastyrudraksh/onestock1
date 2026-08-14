@@ -2,6 +2,23 @@ import { useState, useEffect } from "react";
 import { PanelGroup, Panel } from "react-resizable-panels";
 
 export default function MarketDashboard({ tick, onStrike, components = {} }) {
+  const INDEX_OPTIONS = [
+    "NIFTY 50",
+    "SENSEX",
+    "BANK NIFTY",
+    "NIFTY NEXT 50",
+    "NIFTY MIDCAP 100",
+    "NIFTY IT",
+    "NIFTY AUTO",
+    "NIFTY PHARMA",
+    "NIFTY FMCG",
+    "NIFTY METAL",
+    "NIFTY REALTY",
+    "NIFTY ENERGY",
+  ];
+
+  const [selectedIndex, setSelectedIndex] = useState("NIFTY 50");
+
   const ALL_PANELS = [
     { id: "stocks", label: "Nifty Stocks", key: "NiftyStocksBoard" },
     { id: "oiChain", label: "OI Chain", key: "OiChainCard" },
@@ -33,7 +50,7 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
     if (found) setPanels((p) => [...p, found]);
   };
 
-  if (maximized) {
+    if (maximized) {
     const panel = panels.find((p) => p.id === maximized);
     const Comp = panel ? components[panel.key] : null;
     return (
@@ -42,13 +59,26 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
           <button onClick={() => setMaximized(null)} className="rounded-full border border-edge bg-white px-3 py-1 text-sm">Restore</button>
           <button onClick={() => togglePanel(panel.id)} className="rounded-full border border-edge bg-white px-3 py-1 text-sm">Minimize</button>
         </div>
-        {Comp ? <Comp tick={tick} onStrike={onStrike} /> : <div>Panel not available</div>}
+        {Comp ? <Comp tick={tick} onStrike={onStrike} selectedIndex={selectedIndex} /> : <div>Panel not available</div>}
       </div>
     );
   }
 
   return (
     <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h3 className="font-display text-lg font-bold">MARKET · {selectedIndex}</h3>
+          <select value={selectedIndex} onChange={(e) => setSelectedIndex(e.target.value)}
+            className="rounded border border-edge bg-white px-3 py-1 text-sm">
+            {INDEX_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="rounded-full border border-edge bg-white px-3 py-1 text-sm">Refresh</button>
+          <button className="rounded-full border border-edge bg-white px-3 py-1 text-sm">Live</button>
+        </div>
+      </div>
       <div className="mb-3 flex items-center gap-2">
         <select onChange={(e) => addPanel(e.target.value)} defaultValue="" className="rounded border border-edge bg-white px-3 py-1 text-sm">
           <option value="">Add panel...</option>
@@ -75,7 +105,7 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
                   </div>
                 </div>
                 <div>
-                  {Comp ? <Comp tick={tick} onStrike={onStrike} /> : <div className="text-sm text-slate">Component not available</div>}
+                  {Comp ? <Comp tick={tick} onStrike={onStrike} selectedIndex={selectedIndex} /> : <div className="text-sm text-slate">Component not available</div>}
                 </div>
               </div>
             </Panel>
