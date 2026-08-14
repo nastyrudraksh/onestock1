@@ -30,6 +30,9 @@ Build a modern, premium, responsive fintech and automated trading services homep
 - Market page: responsive 3/2/1-column grid of Nifty 50 stocks (all 50, compact scrollable Advance/Decline list, auto counts) | OI option chain | Instruments cards; each panel has a minimize/expand button (Framer Motion collapse) plus page-level Minimize All / Expand All
 - Alert colors: green toast for BUY CALL, red toast for BUY PUT; 3x blinking dots; two-tone beep on 90%+ strong signals
 - Rebrand: TradeSense → OneStock across the whole app
+- TERMINAL DENSITY PASS (2026-08-14): all panels below the top row now live in one CSS grid (1-col mobile / 2-col md / 3-col xl) positioned via order classes (order-1…order-[19]) — rows: Breadth|Sectors|Sentiment, Constituents(span-2)|Top Gainers, Top Losers|Volume Leaders|Market Movers, Intraday chart(span-2)|FII-DII, OI Chain|OI Activity|Live Signals, News|Watchlist|Signal History; only the 3 wide tables (Fundamentals, Alternative Data, Sales YoY) stay full-width (user choice); old pair wrappers converted to display:contents so no empty grid slots anywhere
+- OI OPTION CHAIN RESTYLE (2026-08-14, user chose to keep the white card): Put columns tinted light green (bg-[#00D084]/10, green bold headers), Call columns tinted rose (bg-rose-500/10, rose bold headers), column divider lines bolded (slate-400 everywhere + 2px slate-500 separators around the Strike column), header underline bolded, Total Call OI value rose / Total Put OI green / Put−Call Diff colored by sign, redundant "Market" column hidden by default (re-toggleable), table min-w 600px at 11px; OI Activity table dividers brightened (#3d3d3d); stat-grid hairlines (Option Intelligence, Breadth, Sectors, Movers) bumped to #333; TermPanel/OiChainCard accept className prop; Market News list capped at 380px with internal scroll
+- Tested (test_reports/iteration_1.json): 100% frontend pass — layout packing at 1920px (no gaps/overlaps), OI colors/dividers/tabs/toggles, signal drawer from strike click, index switch, minimize/expand all, stock drawer, watchlist, chart render, mobile 390px stacking
 - All module views interactive inside the panel: broker connect/disconnect, wallet quick-deposit with live balance update, transaction All/Buy/Sell filters, settings toggles + risk inputs + save toast
 - Landing website preserved behind "View Website"; navbar Get Started opens the panel, Platform dropdown opens panel modules; demo amounts originalised (no values copied from user's reference)
 - Sticky glassmorphism navbar with mobile hamburger, section scroll via Lenis
@@ -50,8 +53,8 @@ Build a modern, premium, responsive fintech and automated trading services homep
 
 ## Backlog
 - P0: none (page complete per brief)
-- P1: dedicated Services/About/Contact sub-pages, blog/insights section
-- P2: real auth + dashboard app behind Login, live market data integration, i18n
+- P1: Live Constituent Ticks — constituent prices tick with the 4-second live feed; Export Table CSV — download button on each terminal table for demo data; dedicated Services/About/Contact sub-pages, blog/insights section
+- P2: OI Diff Alert — beep when the Put − Call OI difference flips sign; real auth + dashboard app behind Login, live market data integration, i18n
 
 ## Notes
 - All financial data is MOCKED/fictional by design (prototype requirement).

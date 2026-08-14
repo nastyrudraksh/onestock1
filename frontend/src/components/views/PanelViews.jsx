@@ -948,9 +948,9 @@ const OI_COL_TOGGLES = [
   { key: "iv", label: "IV" },
 ];
 
-export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle }) {
+export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle, className = "" }) {
   const [tab, setTab] = useState("total");
-  const [cols, setCols] = useState({ market: true, callOi: true, putOi: true, callChg: true, putChg: true, strike: true, iv: true });
+  const [cols, setCols] = useState({ market: false, callOi: true, putOi: true, callChg: true, putChg: true, strike: true, iv: true });
 
   const rows = OI_STRIKES.map((strike) => {
     const h = mixHash(`oi-${strike}-${tick}`);
@@ -981,7 +981,7 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-edge bg-white min-h-[420px] max-h-[450px] h-[420px] flex flex-col" data-testid="oi-chain">
+    <div className={`overflow-hidden rounded-xl border border-edge bg-white h-full min-h-[400px] flex flex-col ${className}`} data-testid="oi-chain">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-2 py-2">
         <p className="font-mono text-[13px] uppercase tracking-[0.06em] text-slate">OI · Option Chain — Nifty 50</p>
         <div className="flex items-center gap-2">
@@ -995,11 +995,11 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-2">
               <div className="font-mono text-[11px] text-slate">Total Call OI</div>
-              <div className="font-mono text-[13px] font-bold text-ink">{totalCall}L</div>
+              <div className="font-mono text-[13px] font-bold text-rose-500" data-testid="oi-total-call">{totalCall}L</div>
             </div>
             <div className="flex items-center gap-2">
               <div className="font-mono text-[11px] text-slate">Total Put OI</div>
-              <div className="font-mono text-[13px] font-bold text-ink">{totalPut}L</div>
+              <div className="font-mono text-[13px] font-bold text-signal" data-testid="oi-total-put">{totalPut}L</div>
             </div>
             <div className="flex items-center gap-2">
               <div className="font-mono text-[11px] text-slate">Put − Call Diff</div>
@@ -1040,20 +1040,20 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
           ))}
         </div>
           <div className="overflow-auto flex-1" data-lenis-prevent>
-            <table className="min-w-[700px] w-full table-fixed text-left font-mono text-[12px] [&_td]:border-r [&_td]:border-edge [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-edge [&_th:last-child]:border-r-0">
+            <table className="min-w-[600px] w-full table-fixed text-left font-mono text-[11px] [&_td]:border-r [&_td]:border-slate-400 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-slate-400 [&_th:last-child]:border-r-0">
             <thead>
-              <tr className="border-b border-edge text-slate">
+              <tr className="border-b-2 border-slate-400 text-slate">
                 {show("market") && <th className="px-2 py-1 text-left font-semibold">Market</th>}
-                {show("putChg") && <th className="px-2 py-1 text-right font-semibold">Put Chg%</th>}
-                {show("putOi") && <th className="px-2 py-1 text-right font-semibold">Put OI</th>}
-                {show("putOi") && <th className="px-2 py-1 text-right font-semibold">Put High</th>}
-                {show("putOi") && <th className="px-2 py-1 text-right font-semibold">Put Δ</th>}
-                {show("strike") && <th className="px-2 py-1 text-center font-semibold text-ink">Strike</th>}
+                {show("putChg") && <th className="bg-[#00D084]/15 px-2 py-1 text-right font-bold text-[#047857]">Put Chg%</th>}
+                {show("putOi") && <th className="bg-[#00D084]/15 px-2 py-1 text-right font-bold text-[#047857]">Put OI</th>}
+                {show("putOi") && <th className="bg-[#00D084]/15 px-2 py-1 text-right font-bold text-[#047857]">Put High</th>}
+                {show("putOi") && <th className="bg-[#00D084]/15 !border-r-2 !border-slate-500 px-2 py-1 text-right font-bold text-[#047857]">Put Δ</th>}
+                {show("strike") && <th className="!border-r-2 !border-slate-500 px-2 py-1 text-center font-bold text-ink">Strike</th>}
                 {show("iv") && <th className="px-2 py-1 font-semibold">IV</th>}
-                {show("callOi") && <th className="px-2 py-1 text-right font-semibold">Call OI</th>}
-                {show("callOi") && <th className="px-2 py-1 text-right font-semibold">Call High</th>}
-                {show("callOi") && <th className="px-2 py-1 text-right font-semibold">Call Δ</th>}
-                {show("callChg") && <th className="px-2 py-1 text-right font-semibold">Call Chg%</th>}
+                {show("callOi") && <th className="bg-rose-500/15 px-2 py-1 text-right font-bold text-rose-600">Call OI</th>}
+                {show("callOi") && <th className="bg-rose-500/15 px-2 py-1 text-right font-bold text-rose-600">Call High</th>}
+                {show("callOi") && <th className="bg-rose-500/15 px-2 py-1 text-right font-bold text-rose-600">Call Δ</th>}
+                {show("callChg") && <th className="bg-rose-500/15 px-2 py-1 text-right font-bold text-rose-600">Call Chg%</th>}
               </tr>
             </thead>
             <tbody>
@@ -1067,24 +1067,24 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
                     className={`cursor-pointer border-b border-edge/80 transition-colors hover:bg-mist ${atm ? "bg-signal/5" : ""}`}
                   >
                     {show("market") && <td className="px-2 py-1 text-left font-bold text-ink">NIFTY 50</td>}
-                    {show("putChg") && <td className={`px-2 py-1 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-500"}`}>{r.putChg}%</td>}
+                    {show("putChg") && <td className={`bg-[#00D084]/10 px-2 py-1 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-500"}`}>{r.putChg}%</td>}
                     {show("putOi") && (
                       <>
-                        <td className="px-2 py-1 text-right font-bold text-ink">{r.putOi}</td>
-                        <td className="px-2 py-1 text-right text-slate">{maxPutOi.toFixed(1)}</td>
-                        <td className={`px-2 py-1 text-right font-bold ${maxPutOi - r.putOi === 0 ? "text-ember" : "text-slate"}`}>{(maxPutOi - r.putOi).toFixed(1)}</td>
+                        <td className="bg-[#00D084]/10 px-2 py-1 text-right font-bold text-ink">{r.putOi}</td>
+                        <td className="bg-[#00D084]/10 px-2 py-1 text-right text-slate">{maxPutOi.toFixed(1)}</td>
+                        <td className={`bg-[#00D084]/10 !border-r-2 !border-slate-500 px-2 py-1 text-right font-bold ${maxPutOi - r.putOi === 0 ? "text-ember" : "text-slate"}`}>{(maxPutOi - r.putOi).toFixed(1)}</td>
                       </>
                     )}
-                    {show("strike") && <td className={`px-2 py-1 text-center font-bold ${atm ? "text-ember" : "text-ink"}`}>{r.strike}</td>}
+                    {show("strike") && <td className={`!border-r-2 !border-slate-500 px-2 py-1 text-center font-bold ${atm ? "text-ember" : "text-ink"}`}>{r.strike}</td>}
                     {show("iv") && <td className="px-2 py-1 text-slate">{r.iv}</td>}
                     {show("callOi") && (
                       <>
-                        <td className="px-2 py-1 text-right font-bold text-ink">{r.callOi}</td>
-                        <td className="px-2 py-1 text-right text-slate">{maxCallOi.toFixed(1)}</td>
-                        <td className={`px-2 py-1 text-right font-bold ${maxCallOi - r.callOi === 0 ? "text-ember" : "text-slate"}`}>{(maxCallOi - r.callOi).toFixed(1)}</td>
+                        <td className="bg-rose-500/10 px-2 py-1 text-right font-bold text-ink">{r.callOi}</td>
+                        <td className="bg-rose-500/10 px-2 py-1 text-right text-slate">{maxCallOi.toFixed(1)}</td>
+                        <td className={`bg-rose-500/10 px-2 py-1 text-right font-bold ${maxCallOi - r.callOi === 0 ? "text-ember" : "text-slate"}`}>{(maxCallOi - r.callOi).toFixed(1)}</td>
                       </>
                     )}
-                    {show("callChg") && <td className={`px-2 py-1 text-right font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-500"}`}>{r.callChg}%</td>}
+                    {show("callChg") && <td className={`bg-rose-500/10 px-2 py-1 text-right font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-500"}`}>{r.callChg}%</td>}
                   </tr>
                 );
               })}
@@ -1199,8 +1199,8 @@ export const INDICES = {
 };
 export const INDEX_NAMES = Object.keys(INDICES);
 
-export const TermPanel = ({ title, id, collapsed, onToggle, right, children }) => (
-  <section className="overflow-hidden rounded-sm border border-[#262626] bg-[#080808]" data-testid={id}>
+export const TermPanel = ({ title, id, collapsed, onToggle, right, children, className = "" }) => (
+  <section className={`overflow-hidden rounded-sm border border-[#262626] bg-[#080808] ${className}`} data-testid={id}>
     <header className="flex items-center justify-between gap-1.5 border-b border-[#262626] bg-[#0d0d0d] px-1.5 py-0.5">
       <span className="font-mono text-[7px] font-bold uppercase tracking-[0.18em] text-amber-400">{title}</span>
       <span className="flex items-center gap-1">

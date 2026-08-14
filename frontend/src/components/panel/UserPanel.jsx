@@ -9,6 +9,7 @@ import {
 import { BrokerView, WalletView, TransactionsView, SettingsView } from "../views/ModuleViews";
 import { MarketView } from "../views/terminal";
 import { PlanView, TierView } from "../views/PanelViews";
+import ProDashboard from "../views/ProDashboard";
 import { Reveal } from "../landing/Reveal";
 
 const MENU = [
@@ -349,7 +350,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
 
         <main className="flex-1 bg-mist/40 p-4 sm:p-8">
           {module === "panel" && (
-            <PanelHome stepsDone={stepsDone} completeStep={completeStep} live={live} onModule={onModule} />
+            <ProDashboard onModule={onModule} />
           )}
           {module === "market" && <MarketView onBack={() => onModule("panel")} />}
           {module === "plan" && <PlanView onBack={() => onModule("panel")} />}

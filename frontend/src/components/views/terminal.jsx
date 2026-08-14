@@ -552,7 +552,7 @@ export function MarketView({ onBack }) {
         {/* 9. OPTION INTELLIGENCE */}
         <TermPanel title={`Option Intelligence — ${indexName}`} id="oiintel-panel" collapsed={collapsed.oiintel} onToggle={() => togglePanel("oiintel")}
           right={<span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
-          <div className="grid grid-cols-3 gap-px bg-[#1c1c1c]">
+          <div className="grid grid-cols-3 gap-px bg-[#333]">
             {[
               ["Call OI", `${derived.totalCall.toFixed(1)}L`, "text-rose-400"],
               ["Put OI", `${derived.totalPut.toFixed(1)}L`, "text-signal"],
@@ -592,11 +592,10 @@ export function MarketView({ onBack }) {
         </TermPanel>
         </div>
 
-
-
+        <div className="grid grid-cols-1 items-stretch gap-1 md:grid-cols-2 xl:grid-cols-3">
         {/* 2. MARKET BREADTH */}
-        <TermPanel title="Market Breadth" id="breadth-panel" collapsed={collapsed.breadth} onToggle={() => togglePanel("breadth")} right={refreshBtn}>
-          <div className="grid grid-cols-4 gap-px bg-[#1c1c1c] sm:grid-cols-8">
+        <TermPanel title="Market Breadth" id="breadth-panel" className="order-1" collapsed={collapsed.breadth} onToggle={() => togglePanel("breadth")} right={refreshBtn}>
+          <div className="grid grid-cols-4 gap-px bg-[#333] sm:grid-cols-8">
             {[
               ["Advance", derived.advances.length, "text-green-400"],
               ["Decline", derived.declines.length, "text-red-400"],
@@ -618,7 +617,7 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 3. ADVANCE / DECLINE / UNCHANGED */}
-        <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="constituent-board">
+        <section className="order-4 overflow-hidden rounded-md border border-[#262626] bg-[#080808] xl:col-span-2" data-testid="constituent-board">
           <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">{indexName} · Constituents</span>
             <span className="font-mono text-[9px] text-[#777]" data-testid="constituent-count">{visibleStocks.length}{sectorFilter ? ` / ${stocks.length}` : ""} shown</span>
@@ -644,8 +643,8 @@ export function MarketView({ onBack }) {
         </section>
 
         {/* 4. TOP GAINERS / TOP LOSERS */}
-        <div className="grid grid-cols-1 gap-1 md:grid-cols-2" data-testid="movers-panels">
-          <div>
+        <div className="[display:contents]" data-testid="movers-panels">
+          <div className="order-5">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-green-400">Top Gainers</span>
               <span className="flex gap-1">
@@ -659,12 +658,10 @@ export function MarketView({ onBack }) {
               </span>
             </div>
             <Collapse open={!collapsed.movers}>
-              <div className="grid grid-cols-1 gap-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-1">
-                <MoverTable title={`Top ${gainerCount} Gainers`} list={derived.gainers} tone="text-green-400" />
-              </div>
+              <MoverTable title={`Top ${gainerCount} Gainers`} list={derived.gainers} tone="text-green-400" />
             </Collapse>
           </div>
-          <div>
+          <div className="order-6">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-red-400">Top Losers</span>
             </div>
@@ -675,8 +672,8 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 5. SECTOR HEATMAP */}
-        <TermPanel title="Sector Performance" id="sectors-panel" collapsed={collapsed.sectors} onToggle={() => togglePanel("sectors")} right={refreshBtn}>
-          <div className="grid grid-cols-3 gap-px bg-[#1c1c1c] sm:grid-cols-4 lg:grid-cols-6">
+        <TermPanel title="Sector Performance" id="sectors-panel" className="order-2" collapsed={collapsed.sectors} onToggle={() => togglePanel("sectors")} right={refreshBtn}>
+          <div className="grid grid-cols-3 gap-px bg-[#333] sm:grid-cols-4">
             {derived.sectors.map((s) => (
               <button key={s.sec} data-testid={`sector-${slug(s.sec)}`}
                 onClick={() => setSectorFilter((f) => (f === s.sec ? null : s.sec))}
@@ -691,8 +688,8 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 6. VOLUME LEADERS + MARKET MOVERS */}
-        <div className="grid grid-cols-1 gap-1 lg:grid-cols-2">
-          <TermPanel title="Volume Leaders" id="volume-panel" collapsed={collapsed.volmov} onToggle={() => togglePanel("volmov")}
+        <div className="[display:contents]">
+          <TermPanel title="Volume Leaders" id="volume-panel" className="order-7" collapsed={collapsed.volmov} onToggle={() => togglePanel("volmov")}
             right={
               <span className="flex gap-1">
                 {["Volume", "Value", "Trades"].map((t) => (
@@ -732,8 +729,8 @@ export function MarketView({ onBack }) {
             </table>
           </TermPanel>
 
-          <TermPanel title="Market Movers" id="movers2-panel" collapsed={collapsed.volmov} onToggle={() => togglePanel("volmov")}>
-            <div className="grid grid-cols-2 gap-px bg-[#1c1c1c]">
+          <TermPanel title="Market Movers" id="movers2-panel" className="order-8" collapsed={collapsed.volmov} onToggle={() => togglePanel("volmov")}>
+            <div className="grid grid-cols-2 gap-px bg-[#333]">
               {[["52W High", derived.hi52, "text-green-400"], ["52W Low", derived.lo52, "text-red-400"],
                 ["Unusual Volume", derived.unusual, "text-amber-400"], ["Most Active", derived.active, "text-white"]].map(([label, list, tone]) => (
                 <div key={label} className="bg-[#080808] p-2">
@@ -754,7 +751,7 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 7. INTRADAY CHART */}
-        <TermPanel title={`${indexName} Intraday`} id="chart-panel" collapsed={collapsed.chart} onToggle={() => togglePanel("chart")}
+        <TermPanel title={`${indexName} Intraday`} id="chart-panel" className="order-9 xl:col-span-2" collapsed={collapsed.chart} onToggle={() => togglePanel("chart")}
           right={
             <span className="flex items-center gap-1">
               {["1D", "5D", "1M", "3M", "6M", "1Y"].map((r) => (
@@ -809,10 +806,10 @@ export function MarketView({ onBack }) {
 
 
         {/* 10. OPTION CHAIN (existing) + 11. OI ACTIVITY */}
-        <div className="grid grid-cols-1 items-start gap-1 xl:grid-cols-2">
-          <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} />
-          <TermPanel title="OI Activity" id="oiactivity-panel" collapsed={collapsed.oiactivity} onToggle={() => togglePanel("oiactivity")}>
-            <table className="w-full font-mono text-[10px] [&_td]:border-r [&_td]:border-[#222] [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-[#222] [&_th:last-child]:border-r-0">
+        <div className="[display:contents]">
+          <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} className="order-11" />
+          <TermPanel title="OI Activity" id="oiactivity-panel" className="order-12" collapsed={collapsed.oiactivity} onToggle={() => togglePanel("oiactivity")}>
+            <table className="w-full font-mono text-[10px] [&_td]:border-r [&_td]:border-[#3d3d3d] [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-[#3d3d3d] [&_th:last-child]:border-r-0">
               <thead>
                 <tr className="border-b border-[#262626] text-[#999]">
                   {["Strike", "Call OI", "Call Δ%", "Put OI", "Put Δ%", "Signal"].map((h) => (
@@ -844,8 +841,8 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 12. FII/DII + 13. SENTIMENT */}
-        <div className="grid grid-cols-1 gap-1 lg:grid-cols-2">
-          <TermPanel title="FII / DII Activity" id="fiidii-panel" collapsed={collapsed.fiidii} onToggle={() => togglePanel("fiidii")}
+        <div className="[display:contents]">
+          <TermPanel title="FII / DII Activity" id="fiidii-panel" className="order-10" collapsed={collapsed.fiidii} onToggle={() => togglePanel("fiidii")}
             right={<span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
             <table className="w-full font-mono text-[10px]">
               <thead>
@@ -875,7 +872,7 @@ export function MarketView({ onBack }) {
             </table>
           </TermPanel>
 
-          <TermPanel title="Market Sentiment" id="sentiment-panel" collapsed={collapsed.sentiment} onToggle={() => togglePanel("sentiment")}
+          <TermPanel title="Market Sentiment" id="sentiment-panel" className="order-3" collapsed={collapsed.sentiment} onToggle={() => togglePanel("sentiment")}
             right={<span className="font-mono text-[9px] text-[#777]">DEMO / DERIVED INDICATOR</span>}>
             <div className="p-1.5">
               <div className="flex items-baseline justify-between">
@@ -898,8 +895,8 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 14. LIVE SIGNALS (existing) + WATCHLIST */}
-        <div className="grid grid-cols-1 items-start gap-1 xl:grid-cols-3">
-          <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808] xl:col-span-2" data-testid="instruments-panel">
+        <div className="[display:contents]">
+          <section className="order-[13] overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="instruments-panel">
             <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
               <span className="font-mono text-[13px] font-bold uppercase tracking-[0.06em] text-amber-400">Instruments · Live Signals</span>
               <MinBtn id="min-inst" collapsed={collapsed.inst} onClick={() => togglePanel("inst")} dark />
@@ -939,7 +936,7 @@ export function MarketView({ onBack }) {
             </Collapse>
           </section>
 
-          <TermPanel title="My Watchlist" id="watchlist-panel" collapsed={collapsed.watchlist} onToggle={() => togglePanel("watchlist")}
+          <TermPanel title="My Watchlist" id="watchlist-panel" className="order-[15]" collapsed={collapsed.watchlist} onToggle={() => togglePanel("watchlist")}
             right={<span className="font-mono text-[9px] text-[#777]">{watchlist.length} saved</span>}>
             {watchlist.length === 0 ? (
               <p className="px-3 py-2.5 font-mono text-[10px] text-[#777]">Star any constituent to pin it here. Saved locally.</p>
@@ -966,7 +963,7 @@ export function MarketView({ onBack }) {
         </div>
 
         {/* 15. MARKET NEWS */}
-        <TermPanel title="Market News" id="news-panel" collapsed={collapsed.news} onToggle={() => togglePanel("news")}
+        <TermPanel title="Market News" id="news-panel" className="order-[14]" collapsed={collapsed.news} onToggle={() => togglePanel("news")}
           right={
             <span className="flex gap-1">
               {NEWS_FILTERS.map((f) => (
@@ -977,7 +974,7 @@ export function MarketView({ onBack }) {
               ))}
             </span>
           }>
-          <div className="divide-y divide-[#1c1c1c]">
+          <div className="max-h-[380px] divide-y divide-[#1c1c1c] overflow-y-auto" data-lenis-prevent>
             {NEWS_ITEMS.filter((n) => newsFilter === "ALL" || n.tag === newsFilter).map((n, i) => (
               <div key={i} className="flex items-center gap-3 px-2 py-1 font-mono text-[10px]">
                 <span className="text-[#777]">{n.t}</span>
@@ -991,7 +988,7 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 16. FINANCIAL FUNDAMENTALS */}
-        <TermPanel title={`Financial Fundamentals — ${indexName}`} id="fund-panel" collapsed={collapsed.fund} onToggle={() => togglePanel("fund")}
+        <TermPanel title={`Financial Fundamentals — ${indexName}`} id="fund-panel" className="order-[17] md:col-span-2 xl:col-span-3" collapsed={collapsed.fund} onToggle={() => togglePanel("fund")}
           right={<span className="font-mono text-[9px] text-[#777]">{navTab} · {currency}</span>}>
           <table className="w-full min-w-[760px] text-left font-mono text-[10px]">
             <thead>
@@ -1016,7 +1013,7 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 17. ALTERNATIVE DATA */}
-        <TermPanel title={`Alternative Data Metrics Summary — ${indexName}`} id="alt-panel" collapsed={collapsed.alt} onToggle={() => togglePanel("alt")}
+        <TermPanel title={`Alternative Data Metrics Summary — ${indexName}`} id="alt-panel" className="order-[18] md:col-span-2 xl:col-span-3" collapsed={collapsed.alt} onToggle={() => togglePanel("alt")}
           right={
             <span className="flex items-center gap-1">
               {ALT_TABS.map((t) => (
@@ -1052,7 +1049,7 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* 18. OBSERVED SALES YOY */}
-        <TermPanel title="Observed Sales YoY Growth" id="sales-panel" collapsed={collapsed.sales} onToggle={() => togglePanel("sales")}
+        <TermPanel title="Observed Sales YoY Growth" id="sales-panel" className="order-[19] md:col-span-2 xl:col-span-3" collapsed={collapsed.sales} onToggle={() => togglePanel("sales")}
           right={
             <span className="flex items-center gap-1">
               {GROWTH_PERIODS.map((p) => (
@@ -1105,7 +1102,7 @@ export function MarketView({ onBack }) {
         </TermPanel>
 
         {/* SIGNAL HISTORY */}
-        <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="signal-history">
+        <section className="order-[16] overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="signal-history">
           <header className="flex items-center justify-between border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Signal History</span>
             {history.length > 0 && (
@@ -1130,6 +1127,7 @@ export function MarketView({ onBack }) {
             </div>
           )}
         </section>
+        </div>
       </div>
 
       <SignalDrawer

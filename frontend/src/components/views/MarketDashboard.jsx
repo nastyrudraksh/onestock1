@@ -67,18 +67,18 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
   }
 
   return (
-    <div className="min-w-0 space-y-1">
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-1">
-          <h3 className="font-display text-sm font-bold tracking-tight">MARKET · {selectedIndex}</h3>
+    <div className="min-w-0 space-y-2">
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="font-display text-base font-bold tracking-tight">MARKET · {selectedIndex}</h3>
           <select value={selectedIndex} onChange={(e) => setSelectedIndex(e.target.value)}
             className="rounded border border-edge bg-white px-2 py-1 text-xs">
             {INDEX_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <button className="rounded-full border border-edge bg-white px-2 py-0.5 text-[10px]">Refresh</button>
-          <button className="rounded-full border border-edge bg-white px-2 py-0.5 text-[10px]">Live</button>
+          <button className="rounded-full border border-edge bg-white px-2.5 py-1 text-[10px]">Refresh</button>
+          <button className="rounded-full border border-edge bg-white px-2.5 py-1 text-[10px]">Live</button>
         </div>
       </div>
       <div className="mb-2 flex items-center gap-2">
@@ -88,7 +88,7 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
             <option key={p.id} value={p.id}>{p.label}</option>
           ))}
         </select>
-        <button onClick={() => { setHidden({}); setMaximized(null); setPanels(ALL_PANELS); }} className="rounded-full border border-edge bg-white px-2 py-0.5 text-[10px]">Reset</button>
+        <button onClick={() => { setHidden({}); setMaximized(null); setPanels(ALL_PANELS); }} className="rounded-full border border-edge bg-white px-2.5 py-1 text-[10px]">Reset</button>
       </div>
 
       <PanelGroup direction="horizontal" className="w-full min-w-0 overflow-hidden" onUpdate={({ sizes: s }) => setSizes(s)}>
@@ -102,19 +102,19 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
               minSize={16}
               className="min-w-0"
             >
-              <div className="m-0.5 min-w-0 overflow-hidden rounded-lg border border-edge bg-white p-1">
-                  <div className="mb-1 flex items-center justify-between gap-1">
-                    <div className="font-mono text-[11px] font-semibold">{p.label}</div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setMaximized(p.id)} className="rounded-full border border-edge bg-white px-1 py-0.5 text-[9px]">Max</button>
-                      <button onClick={() => togglePanel(p.id)} className="rounded-full border border-edge bg-white px-1 py-0.5 text-[9px]">Min</button>
-                      <button onClick={() => removePanel(p.id)} className="rounded-full border border-edge bg-white px-1 py-0.5 text-[9px]">Remove</button>
-                    </div>
-                  </div>
-                  <div className="min-w-0 overflow-hidden">
-                    {Comp ? <Comp tick={tick} onStrike={onStrike} selectedIndex={selectedIndex} /> : <div className="text-sm text-slate">Component not available</div>}
+              <div className="m-1 min-w-0 overflow-hidden rounded-lg border border-edge bg-white p-2">
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <div className="font-mono text-[10px] font-semibold">{p.label}</div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setMaximized(p.id)} className="rounded-full border border-edge bg-white px-1.5 py-0.5 text-[8px]">Max</button>
+                    <button onClick={() => togglePanel(p.id)} className="rounded-full border border-edge bg-white px-1.5 py-0.5 text-[8px]">Min</button>
+                    <button onClick={() => removePanel(p.id)} className="rounded-full border border-edge bg-white px-1.5 py-0.5 text-[8px]">Remove</button>
                   </div>
                 </div>
+                <div className="min-w-0 overflow-hidden">
+                  {Comp ? <Comp tick={tick} onStrike={onStrike} selectedIndex={selectedIndex} /> : <div className="text-sm text-slate">Component not available</div>}
+                </div>
+              </div>
             </Panel>
           );
         })}
