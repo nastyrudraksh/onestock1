@@ -1075,6 +1075,439 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
   );
 }
 
+export function MarketView({ onBack }) {
+  const [indexName, setIndexName] = useState("NIFTY 50");
+  const index = INDICES[indexName];
+  const [tick, setTick] = useState(0);
+  const [live, setLive] = useState(true);
+  const [enabled, setEnabled] = useState([true, true, true, true, true]);
+  const [history, setHistory] = useState([]);
+  const [signalFor, setSignalFor] = useState(null);
+  const [collapsed, setCollapsed] = useState({ fund: false, alt: false, sales: false, board: false, oi: false, inst: false });
+  const [navTab, setNavTab] = useState("Financial Analysis");
+  const [altTab, setAltTab] = useState("Inflection");
+  const [currency, setCurrency] = useState("INR");
+  const [growthPeriod, setGrowthPeriod] = useState("3M");
+  const [compSource, setCompSource] = useState("Analyst Curated (BI)");
+  const [growthType, setGrowthType] = useState("Year-over-Year");
+  const [periodicity, setPeriodicity] = useState("Weekly");
+
+  const togglePanel = (k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
+  const setAll = (v) => setCollapsed({ fund: v, alt: v, sales: v, board: v, oi: v, inst: v });
+  const openStrike = (strike) =>
+    setSignalFor({ name: `NIFTY ${strike} STRIKE`, px: strike.toLocaleString("en-IN"), chg: "+0.00%" });
+  const openStock = (s) =>
+    setSignalFor({ name: `${s.sym} · ${s.name}`, px: Number(s.ltp).toLocaleString("en-IN"), chg: `${s.chgPct >= 0 ? "+" : ""}${s.chgPct.toFixed(2)}%` });
+  const toggleIndicator = (i) =>
+    setEnabled((e) => {
+      const next = [...e];
+      next[i] = !next[i];
+      return next.some(Boolean) ? next : e;
+    });
+
+  useEffect(() => {
+    if (!live) return;
+    const id = setInterval(() => setTick((t) => t + 1), 4000);
+    return () => clearInterval(id);
+  }, [live]);
+
+  useEffect(() => {
+    if (tick === 0) return;
+    const strong = INSTRUMENTS.map((m) => ({ m, sig: buildSignal(m, tick, enabled) }))
+      .filter((x) => x.sig.confidence >= 90)
+      .slice(0, 2);
+    if (strong.length > 0) playAlertBeep();
+    strong.forEach(({ m, sig }) => {
+      const fn = sig.buy ? toast.success : toast.error;
+      fn(`Strong Signal: ${m.name}`, {
+        id: `strong-${slug(m.name)}-${tick}`,
+        description: `${sig.dir} · ${sig.confidence}% confidence · demo test model`,
+        style: sig.buy
+          ? { background: "#00D084", color: "#06281C", border: "1px solid #00B573" }
+          : { background: "#F43F5E", color: "#FFFFFF", border: "1px solid #E11D48" },
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
+
+  useEffect(() => {
+    if (!signalFor) return;
+    const sig = buildSignal(signalFor, tick, enabled);
+    const time = new Date().toLocaleTimeString("en-IN", { hour12: false });
+    setHistory((h) =>
+      [{ name: signalFor.name, dir: sig.dir, buy: sig.buy, confidence: sig.confidence, time }, ...h].slice(0, 8)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signalFor, tick]);
+
+  const px = parseFloat(index.px.replace(/,/g, ""));
+  const chgNum = parseFloat(index.chg);
+  const hh = mixHash(`hdr-${indexName}`);
+  const vol = (12.4 + (hh % 800) / 10).toFixed(1);
+  const fx = (v, dec = 2) =>
+    currency === "USD"
+      ? `$${(v / 84).toLocaleString("en-US", { maximumFractionDigits: dec })}`
+      : `₹${v.toLocaleString("en-IN", { maximumFractionDigits: dec })}`;
+  const up = chgNum >= 0;
+  const hdrStats = [
+    { l: "Volume", v: `${vol}M` },
+    { l: "Bid", v: fx(px * 0.9998) },
+    { l: "Ask", v: fx(px * 1.0002) },
+    { l: "Open", v: fx(px / (1 + chgNum / 100)) },
+    { l: "High", v: fx(px * 1.008) },
+    { l: "Low", v: fx(px * 0.991) },
+    { l: "Value", v: `${fx(px * parseFloat(vol) * 10, 0)} Cr` },
+  ];
+  const funds = buildFundamentals();
+  const altRows = buildAltRows();
+  const idxSig = buildSignal({ name: indexName, px: index.px }, tick, enabled);
+  const advN = index.stocks.filter((s) => s.chgPct > 0).length;
+  const decN = index.stocks.filter((s) => s.chgPct < 0).length;
+  const uncN = index.stocks.length - advN - decN;
+
+  return (
+    <section data-testid="market-view" className="px-2 py-4 sm:px-4">
+      <button
+        data-testid="market-back-button"
+        onClick={onBack}
+        className="mb-3 inline-flex items-center gap-1.5 rounded border border-edge bg-white px-3 py-1.5 font-mono text-[10px] font-semibold text-slate transition-colors hover:bg-mist hover:text-ink"
+      >
+        ← Back to Dashboard
+      </button>
+
+      <div className="space-y-2.5">
+        <section className="rounded-md border border-[#262626] bg-[#080808]" data-testid="terminal-header">
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#262626] px-2.5 py-1.5">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-[#777]">Market</span>
+            <select
+              data-testid="index-selector"
+              value={indexName}
+              onChange={(e) => setIndexName(e.target.value)}
+              className="rounded border border-[#333] bg-[#050505] px-2.5 py-1.5 font-mono text-xs font-bold text-amber-400 outline-none focus:border-amber-400"
+            >
+              {INDEX_NAMES.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <span className="font-mono text-[9px] text-[#777]">{index.stocks.length} Constituents</span>
+            <span className="hidden items-center gap-2.5 font-mono text-[9px] font-bold sm:flex">
+              <span className="text-green-400">Advance {advN}</span>
+              <span className="text-red-400">Decline {decN}</span>
+              <span className="text-[#888]">Unchanged {uncN}</span>
+            </span>
+            {["Related Functions", "Menu"].map((b) => (
+              <button key={b} data-testid={`terminal-${slug(b)}`} onClick={() => toast.info(`${b} — demo control`)}
+                className="hidden rounded border border-[#333] bg-[#111] px-2 py-1 font-mono text-[9px] font-semibold text-[#d7d7d7] transition-colors hover:bg-[#1a1a1a] md:block">
+                {b} ▾
+              </button>
+            ))}
+            <span className="ml-auto flex items-center gap-2">
+              <button
+                data-testid="market-live-toggle"
+                onClick={() => setLive((l) => !l)}
+                className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                  live ? "border-green-800 bg-green-950/60 text-green-400" : "border-[#333] bg-[#111] text-[#888]"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-green-400 animate-pulse-dot" : "bg-[#666]"}`} />
+                {live ? "Live" : "Paused"}
+              </button>
+              <button
+                data-testid="terminal-refresh"
+                onClick={() => { setTick((t) => t + 1); toast.success("Data refreshed", { description: "Demo feed ticked forward." }); }}
+                className="inline-flex items-center gap-1.5 rounded border border-[#333] bg-[#111] px-2 py-1 font-mono text-[9px] font-semibold text-[#d7d7d7] transition-colors hover:bg-[#1a1a1a]"
+              >
+                <RefreshCw className="h-3 w-3" /> Refresh
+              </button>
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-x-5 gap-y-2 px-2.5 py-2">
+            <div>
+              <p className="font-mono text-xl font-bold leading-none text-white" data-testid="terminal-price">{fx(px)}</p>
+              <p className={`mt-1 font-mono text-[11px] font-bold ${up ? "text-green-400" : "text-red-400"}`} data-testid="terminal-change">
+                {up ? "▲" : "▼"} {fx(Math.abs((px * chgNum) / 100))} ({index.chg})
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-1 sm:grid-cols-4 lg:grid-cols-7">
+              {hdrStats.map((s) => (
+                <div key={s.l}>
+                  <p className="font-mono text-[8px] uppercase tracking-wider text-[#777]">{s.l}</p>
+                  <p className="font-mono text-[10px] font-semibold text-[#e5e5e5]">{s.v}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              data-testid="terminal-signal-button"
+              onClick={() => setSignalFor({ name: indexName, px: index.px, chg: index.chg })}
+              className={`ml-auto inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white transition-all active:scale-95 ${
+                idxSig.buy ? "bg-green-600 hover:bg-green-500" : "bg-red-600 hover:bg-red-500"
+              }`}
+            >
+              <Zap className="h-3 w-3" /> Signal · {idxSig.dir}
+            </button>
+          </div>
+
+          <nav className="flex flex-wrap items-center gap-1 border-t border-[#262626] px-2 py-1">
+            {NAV_TABS.map((t) => (
+              <button
+                key={t}
+                data-testid={`nav-tab-${slug(t)}`}
+                onClick={() => setNavTab(t)}
+                className={`rounded px-2 py-0.5 font-mono text-[9px] font-semibold transition-colors ${
+                  navTab === t ? "bg-[#1a1a1a] text-amber-400 shadow-[inset_0_-2px_0_#F5A623]" : "text-[#999] hover:text-white"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+            <select
+              data-testid="currency-selector"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="ml-auto rounded border border-[#333] bg-[#050505] px-2 py-1 font-mono text-[9px] font-bold text-[#d7d7d7] outline-none"
+            >
+              <option value="INR">INR ₹</option>
+              <option value="USD">USD $</option>
+            </select>
+            <button
+              data-testid="terminal-settings"
+              onClick={() => toast.info("Terminal settings — demo control")}
+              className="inline-flex items-center gap-1 rounded border border-[#333] bg-[#111] px-2 py-1 font-mono text-[9px] font-semibold text-[#d7d7d7] hover:bg-[#1a1a1a]"
+            >
+              <Settings className="h-3 w-3" /> Settings
+            </button>
+          </nav>
+        </section>
+
+        <div className="flex items-center justify-end gap-2">
+          <button data-testid="market-minimize-all" onClick={() => setAll(true)}
+            className="rounded border border-[#333] bg-[#111] px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-[#1a1a1a]">
+            Minimize All
+          </button>
+          <button data-testid="market-expand-all" onClick={() => setAll(false)}
+            className="rounded bg-amber-400 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-black transition-all hover:brightness-110">
+            Expand All
+          </button>
+        </div>
+
+        <ConstituentBoard
+          indexName={indexName}
+          stocks={index.stocks}
+          onSelectStock={openStock}
+          collapsed={collapsed.board}
+          onToggle={() => togglePanel("board")}
+        />
+
+        <TermPanel title={`Financial Fundamentals — ${indexName}`} id="fund-panel"
+          collapsed={collapsed.fund} onToggle={() => togglePanel("fund")}
+          right={<span className="font-mono text-[9px] text-[#777]">{navTab} · {currency}</span>}>
+          <table className="w-full min-w-[760px] text-left font-mono text-[10px]">
+            <thead>
+              <tr className="border-b border-[#262626] text-[#999]">
+                <th className="px-3 py-1.5 text-left font-semibold">₹ Cr</th>
+                {FY_COLS.map((c) => (
+                  <th key={c} className={`px-3 py-1.5 text-center font-semibold ${c.includes("Est") || c.includes("LTM") ? "text-amber-400" : ""}`}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {funds.map((r, ri) => (
+                <tr key={ri} className="border-b border-[#1c1c1c] transition-colors hover:bg-white/[0.03]">
+                  <td className={`whitespace-nowrap px-3 py-1 ${r.key ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{r.label}</td>
+                  {r.cells.map((c, ci) => (
+                    <td key={ci} className={`px-3 py-1 text-right ${cellTone[c.tone]}`}>{c.t}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TermPanel>
+
+        <TermPanel title={`Alternative Data Metrics Summary — ${indexName}`} id="alt-panel"
+          collapsed={collapsed.alt} onToggle={() => togglePanel("alt")}
+          right={
+            <span className="flex items-center gap-1">
+              {ALT_TABS.map((t) => (
+                <button key={t} data-testid={`alt-tab-${slug(t)}`} onClick={() => setAltTab(t)}
+                  className={`rounded px-2 py-0.5 font-mono text-[9px] font-semibold transition-colors ${altTab === t ? "bg-amber-400 text-black" : "text-[#999] hover:text-white"}`}>
+                  {t}
+                </button>
+              ))}
+            </span>
+          }>
+          <table className="w-full min-w-[680px] text-left font-mono text-[10px]">
+            <thead>
+              <tr className="border-b border-[#262626] text-[#999]">
+                <th className="px-3 py-1.5 font-semibold">Metric</th>
+                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`l-${c}`} className="px-3 py-1.5 text-center font-semibold">{c}</th>)}
+                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`g-${c}`} className="px-3 py-1.5 text-center font-semibold text-amber-400">{c} Δ</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {altRows.map((r) => (
+                <tr key={r.m} className="border-b border-[#1c1c1c]">
+                  <td className="whitespace-nowrap px-3 py-1 text-[#c9c9c9]">{r.m}</td>
+                  {r.lvl.map((v, i) => <td key={i} className="px-3 py-1 text-right text-[#e5e5e5]">{v}</td>)}
+                  {r.gr.map((g, i) => (
+                    <td key={i} className={`px-3 py-1 text-right font-bold ${g >= 0 ? "bg-[#0d2b1a] text-green-400" : "bg-[#3a0d12] text-red-400"}`}>
+                      {g >= 0 ? "+" : ""}{g.toFixed(1)}%
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TermPanel>
+
+        <TermPanel title="Observed Sales YoY Growth" id="sales-panel"
+          collapsed={collapsed.sales} onToggle={() => togglePanel("sales")}
+          right={
+            <span className="flex items-center gap-1">
+              {GROWTH_PERIODS.map((p) => (
+                <button key={p} data-testid={`period-${p.toLowerCase()}`} onClick={() => setGrowthPeriod(p)}
+                  className={`rounded px-2 py-0.5 font-mono text-[9px] font-bold transition-colors ${growthPeriod === p ? "bg-amber-400 text-black" : "text-[#999] hover:text-white"}`}>
+                  {p}
+                </button>
+              ))}
+            </span>
+          }>
+          <div className="flex flex-wrap items-center gap-3 border-b border-[#262626] px-3 py-1.5">
+            {[
+              { l: "Comp Source", v: compSource, set: setCompSource, opts: ["Analyst Curated (BI)", "Company Reported"], id: "comp-source" },
+              { l: "Growth", v: growthType, set: setGrowthType, opts: ["Year-over-Year", "Quarter-over-Quarter"], id: "growth-type" },
+              { l: "Period", v: periodicity, set: setPeriodicity, opts: ["Weekly", "Monthly"], id: "periodicity" },
+            ].map((c) => (
+              <label key={c.id} className="flex items-center gap-1.5 font-mono text-[9px] text-[#999]">
+                {c.l}:
+                <select data-testid={`sales-${c.id}`} value={c.v} onChange={(e) => c.set(e.target.value)}
+                  className="rounded border border-[#333] bg-[#050505] px-2 py-0.5 font-semibold text-[#d7d7d7] outline-none">
+                  {c.opts.map((o) => <option key={o}>{o}</option>)}
+                </select>
+              </label>
+            ))}
+            <span className="ml-auto font-mono text-[9px] text-[#777]">{growthPeriod} · {growthType} · {periodicity}</span>
+          </div>
+          <table className="w-full min-w-[900px] text-left font-mono text-[10px]">
+            <thead>
+              <tr className="border-b border-[#262626] text-[#999]">
+                <th className="px-3 py-1.5 font-semibold">Week Ending</th>
+                {SALES_WEEKS.map((w) => <th key={w} className="px-2 py-1.5 text-center font-semibold">{w}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {SALES_ROWS.map((row, ri) => (
+                <tr key={row} className="border-b border-[#1c1c1c]">
+                  <td className={`whitespace-nowrap px-3 py-1 ${ri === 0 ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{row}</td>
+                  {SALES_WEEKS.map((w) => {
+                    const g = (mixHash(`sales-${row}-${w}-${growthPeriod}-${compSource}`) % 300 - 140) / 10;
+                    return (
+                      <td key={w} className={`px-2 py-1 text-right font-bold ${g >= 0 ? "bg-[#0d2b1a] text-green-400" : "bg-[#3a0d12] text-red-400"}`}>
+                        {g >= 0 ? "+" : ""}{g.toFixed(1)}%
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TermPanel>
+
+        <div className="grid grid-cols-1 items-start gap-2.5 xl:grid-cols-2">
+          <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} />
+          <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="instruments-panel">
+            <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Instruments · Live Signals</span>
+              <MinBtn id="min-inst" collapsed={collapsed.inst} onClick={() => togglePanel("inst")} dark />
+            </header>
+            <Collapse open={!collapsed.inst}>
+              <div className="grid max-h-[420px] grid-cols-1 gap-1.5 overflow-y-auto p-2 sm:grid-cols-2" data-lenis-prevent>
+                {INSTRUMENTS.map((m) => {
+                  const sig = buildSignal(m, tick, enabled);
+                  return (
+                    <div
+                      key={m.name}
+                      role="button"
+                      tabIndex={0}
+                      data-testid={`market-instrument-${slug(m.name)}`}
+                      onClick={() => setSignalFor(m)}
+                      onKeyDown={(e) => e.key === "Enter" && setSignalFor(m)}
+                      className="group flex cursor-pointer items-center justify-between gap-2 rounded border border-[#262626] bg-[#0d0d0d] px-2 py-1.5 transition-colors hover:border-[#444]"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          data-testid={`market-light-${slug(m.name)}`}
+                          className={`relative flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors duration-500 ${
+                            sig.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                          }`}
+                        >
+                          {sig.buy ? <TrendingUp className="h-3 w-3" strokeWidth={2.5} /> : <TrendingDown className="h-3 w-3" strokeWidth={2.5} />}
+                          <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-[#080808] animate-pulse-dot ${sig.buy ? "bg-green-400" : "bg-red-400"}`} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[9px] font-bold uppercase tracking-wide text-[#c9c9c9]">{m.name}</span>
+                          <span className="block font-mono text-[9px]">
+                            <span className="font-semibold text-white">₹{m.px}</span>{" "}
+                            <span className={`font-semibold ${m.chg.startsWith("+") ? "text-green-400" : "text-red-400"}`}>{m.chg}</span>
+                          </span>
+                        </span>
+                      </span>
+                      <button
+                        data-testid={`market-signal-${slug(m.name)}`}
+                        onClick={(e) => { e.stopPropagation(); setSignalFor(m); }}
+                        className="inline-flex shrink-0 items-center gap-1 rounded bg-[#1a1a1a] px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-amber-400 hover:text-black"
+                      >
+                        <Zap className="h-2.5 w-2.5" /> Signal
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </Collapse>
+          </section>
+        </div>
+
+        <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="signal-history">
+          <header className="flex items-center justify-between border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Signal History</span>
+            {history.length > 0 && (
+              <button data-testid="signal-history-clear" onClick={() => setHistory([])}
+                className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#777] transition-colors hover:text-red-400">
+                Clear
+              </button>
+            )}
+          </header>
+          {history.length === 0 ? (
+            <p className="px-3 py-2.5 font-mono text-[10px] text-[#777]">Open any Signal panel or click a constituent to log demo signals here.</p>
+          ) : (
+            <div className="divide-y divide-[#1c1c1c]">
+              {history.map((h, i) => (
+                <div key={`${h.time}-${i}`} data-testid={`signal-history-row-${i}`} className="flex items-center justify-between gap-3 px-3 py-1.5 font-mono text-[10px]">
+                  <span className="text-[#777]">{h.time}</span>
+                  <span className="font-bold text-[#e5e5e5]">{h.name}</span>
+                  <span className={`rounded px-2 py-0.5 font-bold ${h.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>{h.dir}</span>
+                  <span className="font-semibold text-[#999]">{h.confidence}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <SignalDrawer
+        instrument={signalFor}
+        tick={tick}
+        live={live}
+        onToggleLive={() => setLive((l) => !l)}
+        enabled={enabled}
+        onToggleIndicator={toggleIndicator}
+        onRefresh={() => setTick((t) => t + 1)}
+        onClose={() => setSignalFor(null)}
+      />
+    </section>
+  );
+}
+
 const FY_COLS = ["FY 2011", "FY 2012", "FY 2013", "FY 2014", "FY 2015", "Current/LTM", "FY 2016 Est"];
 const mkSeries = (base, g) => FY_COLS.map((_, i) => base * Math.pow(1 + g, i));
 const moneyFmt = (v) => (v < 0 ? `(${Math.round(Math.abs(v)).toLocaleString("en-IN")})` : Math.round(v).toLocaleString("en-IN"));
@@ -1129,10 +1562,55 @@ const NAV_TABS = ["ADJ", "Key Stats", "Highlights", "GAAP Highlights", "Financia
 const ALT_TABS = ["Inflection", "KPI Correlation", "Trend Analysis"];
 const GROWTH_PERIODS = ["3M", "6M", "1Y", "2Y", "3Y", "5Y", "Max"];
 
+const COMPANY = {
+  RELIANCE: "Reliance Industries", TCS: "Tata Consultancy Svcs", HDFCBANK: "HDFC Bank", INFY: "Infosys",
+  ICICIBANK: "ICICI Bank", SBIN: "State Bank of India", TATAMOTORS: "Tata Motors", ITC: "ITC",
+  LT: "Larsen & Toubro", AXISBANK: "Axis Bank", KOTAKBANK: "Kotak Mahindra", HINDUNILVR: "Hindustan Unilever",
+  BAJFINANCE: "Bajaj Finance", MARUTI: "Maruti Suzuki", SUNPHARMA: "Sun Pharma", TITAN: "Titan",
+  ULTRACEMCO: "UltraTech Cement", NTPC: "NTPC", POWERGRID: "Power Grid", ONGC: "ONGC",
+  TATASTEEL: "Tata Steel", JSWSTEEL: "JSW Steel", ADANIENT: "Adani Enterprises", HCLTECH: "HCL Tech",
+  BHARTIARTL: "Bharti Airtel", ASIANPAINT: "Asian Paints", DMART: "Avenue Supermarts", WIPRO: "Wipro",
+  TECHM: "Tech Mahindra", HINDZINC: "Hindustan Zinc", COALINDIA: "Coal India", BPCL: "BPCL",
+  IOC: "Indian Oil", HEROMOTOCO: "Hero MotoCorp", EICHERMOT: "Eicher Motors", "BAJAJ-AUTO": "Bajaj Auto",
+  TVSMOTOR: "TVS Motor", CIPLA: "Cipla", DRREDDY: "Dr Reddy's Labs", DIVISLAB: "Divi's Labs",
+  APOLLOHOSP: "Apollo Hospitals", BRITANNIA: "Britannia", NESTLEIND: "Nestle India", TATACONSUM: "Tata Consumer",
+  HAVELLS: "Havells India", PIDILITIND: "Pidilite Industries", VEDL: "Vedanta", HINDALCO: "Hindalco",
+  GRASIM: "Grasim Industries", INDUSINDBK: "IndusInd Bank", DLF: "DLF", LODHA: "Macrotech Developers",
+};
+
+const NIFTY50_SYMS = ["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","TATAMOTORS","ITC","LT","AXISBANK","KOTAKBANK","HINDUNILVR","BAJFINANCE","MARUTI","SUNPHARMA","TITAN","ULTRACEMCO","NTPC","POWERGRID","ONGC","TATASTEEL","JSWSTEEL","ADANIENT","HCLTECH","BHARTIARTL","ASIANPAINT","DMART","WIPRO","TECHM","HINDZINC","COALINDIA","BPCL","IOC","HEROMOTOCO","EICHERMOT","BAJAJ-AUTO","TVSMOTOR","CIPLA","DRREDDY","DIVISLAB","APOLLOHOSP","BRITANNIA","NESTLEIND","TATACONSUM","HAVELLS","PIDILITIND","VEDL","HINDALCO","GRASIM","INDUSINDBK"];
+const SENSEX_SYMS = ["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","ITC","LT","AXISBANK","KOTAKBANK","HINDUNILVR","BAJFINANCE","MARUTI","SUNPHARMA","TITAN","ULTRACEMCO","NTPC","POWERGRID","TATASTEEL","JSWSTEEL","HCLTECH","BHARTIARTL","ASIANPAINT","WIPRO","TECHM","HEROMOTOCO","BAJAJ-AUTO","CIPLA","NESTLEIND","INDUSINDBK"];
+
+const mkStock = (sym, i) => {
+  const h = mixHash(`stk-${sym}`);
+  const ltp = (50 + (h % 240000) / 100).toFixed(2);
+  let chgPct = ((h >> 4) % 520 - 260) / 100;
+  if (i % 17 === 16) chgPct = 0;
+  const volume = (0.4 + ((h >> 6) % 900) / 10).toFixed(1);
+  const oi = (2 + ((h >> 8) % 400) / 10).toFixed(1);
+  return { sym, name: COMPANY[sym] || `${sym} Ltd`, ltp, chgPct, volume, oi, status: "Open" };
+};
+
+const INDICES = {
+  "NIFTY 50": { px: "24,812.75", chg: "+0.84%", stocks: NIFTY50_SYMS.map(mkStock) },
+  "SENSEX": { px: "81,506.20", chg: "+0.61%", stocks: SENSEX_SYMS.map(mkStock) },
+  "BANK NIFTY": { px: "51,240.30", chg: "+1.12%", stocks: ["HDFCBANK","ICICIBANK","SBIN","AXISBANK","KOTAKBANK","INDUSINDBK","BAJFINANCE"].map(mkStock) },
+  "NIFTY NEXT 50": { px: "68,412.40", chg: "-0.22%", stocks: ["DLF","LODHA","HINDZINC","VEDL","HAVELLS","PIDILITIND","DMART","DIVISLAB","TVSMOTOR","TATACONSUM"].map(mkStock) },
+  "NIFTY MIDCAP 100": { px: "58,412.40", chg: "-0.18%", stocks: ["HINDZINC","COALINDIA","HAVELLS","PIDILITIND","DLF","LODHA","TVSMOTOR","DIVISLAB"].map(mkStock) },
+  "NIFTY IT": { px: "38,945.10", chg: "+0.97%", stocks: ["TCS","INFY","HCLTECH","WIPRO","TECHM"].map(mkStock) },
+  "NIFTY AUTO": { px: "23,410.65", chg: "-0.64%", stocks: ["TATAMOTORS","MARUTI","HEROMOTOCO","EICHERMOT","BAJAJ-AUTO","TVSMOTOR"].map(mkStock) },
+  "NIFTY PHARMA": { px: "21,208.30", chg: "+0.42%", stocks: ["SUNPHARMA","CIPLA","DRREDDY","DIVISLAB","APOLLOHOSP"].map(mkStock) },
+  "NIFTY FMCG": { px: "56,120.90", chg: "+0.18%", stocks: ["ITC","HINDUNILVR","BRITANNIA","NESTLEIND","TATACONSUM","DMART"].map(mkStock) },
+  "NIFTY METAL": { px: "9,412.55", chg: "+1.38%", stocks: ["TATASTEEL","JSWSTEEL","HINDALCO","HINDZINC","VEDL","COALINDIA"].map(mkStock) },
+  "NIFTY REALTY": { px: "982.40", chg: "-1.05%", stocks: ["DLF","LODHA"].map(mkStock) },
+  "NIFTY ENERGY": { px: "35,614.20", chg: "-0.37%", stocks: ["RELIANCE","ONGC","BPCL","IOC","NTPC","POWERGRID","COALINDIA"].map(mkStock) },
+};
+const INDEX_NAMES = Object.keys(INDICES);
+
 const TermPanel = ({ title, id, collapsed, onToggle, right, children }) => (
   <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid={id}>
-    <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-3 py-1.5">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400">{title}</span>
+    <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
+      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">{title}</span>
       <span className="flex items-center gap-2">
         {right}
         {onToggle && <MinBtn id={`min-${id}`} collapsed={collapsed} onClick={onToggle} dark />}
@@ -1144,419 +1622,73 @@ const TermPanel = ({ title, id, collapsed, onToggle, right, children }) => (
   </section>
 );
 
-const cellTone = {
-  pos: "text-green-400",
-  neg: "text-red-400",
-  neu: "text-[#d7d7d7]",
-  muted: "text-[#555]",
+const cellTone = { pos: "text-green-400", neg: "text-red-400", neu: "text-[#d7d7d7]", muted: "text-[#555]" };
+
+const StockRow = ({ s, onClick }) => {
+  const up = s.chgPct > 0;
+  const flat = s.chgPct === 0;
+  const chgAbs = ((s.ltp * s.chgPct) / 100).toFixed(2);
+  return (
+    <tr
+      data-testid={`constituent-${slug(s.sym)}`}
+      onClick={() => onClick(s)}
+      className="cursor-pointer border-b border-[#1c1c1c] transition-colors hover:bg-white/[0.05]"
+    >
+      <td className="whitespace-nowrap px-2 py-1 font-bold text-white">{s.sym}</td>
+      <td className="hidden whitespace-nowrap px-2 py-1 text-[#888] lg:table-cell">{s.name}</td>
+      <td className="whitespace-nowrap px-2 py-1 text-right text-[#e5e5e5]">{Number(s.ltp).toLocaleString("en-IN")}</td>
+      <td className={`whitespace-nowrap px-2 py-1 text-right font-semibold ${flat ? "text-[#888]" : up ? "text-green-400" : "text-red-400"}`}>
+        {flat ? "0.00" : `${up ? "+" : ""}${chgAbs}`}
+      </td>
+      <td className={`whitespace-nowrap px-2 py-1 text-right font-bold ${flat ? "text-[#888]" : up ? "text-green-400" : "text-red-400"}`}>
+        {flat ? "0.00%" : `${up ? "+" : ""}${s.chgPct.toFixed(2)}%`}
+      </td>
+      <td className="hidden whitespace-nowrap px-2 py-1 text-right text-[#888] xl:table-cell">{s.volume}M</td>
+    </tr>
+  );
 };
 
-export function MarketView({ onBack }) {
-  const [instrumentIdx, setInstrumentIdx] = useState(0);
-  const instrument = INSTRUMENTS[instrumentIdx];
-  const [tick, setTick] = useState(0);
-  const [live, setLive] = useState(true);
-  const [enabled, setEnabled] = useState([true, true, true, true, true]);
-  const [history, setHistory] = useState([]);
-  const [signalFor, setSignalFor] = useState(null);
-  const [collapsed, setCollapsed] = useState({ fund: false, alt: false, sales: false, stocks: false, oi: false, inst: false });
-  const [navTab, setNavTab] = useState("Financial Analysis");
-  const [altTab, setAltTab] = useState("Inflection");
-  const [currency, setCurrency] = useState("INR");
-  const [growthPeriod, setGrowthPeriod] = useState("3M");
-  const [compSource, setCompSource] = useState("Analyst Curated (BI)");
-  const [growthType, setGrowthType] = useState("Year-over-Year");
-  const [periodicity, setPeriodicity] = useState("Weekly");
+const ConstituentBoard = ({ indexName, stocks, onSelectStock, collapsed, onToggle }) => {
+  const advances = stocks.filter((s) => s.chgPct > 0);
+  const declines = stocks.filter((s) => s.chgPct < 0);
+  const unchanged = stocks.filter((s) => s.chgPct === 0);
 
-  const togglePanel = (k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
-  const setAll = (v) => setCollapsed({ fund: v, alt: v, sales: v, stocks: v, oi: v, inst: v });
-  const openStrike = (strike) =>
-    setSignalFor({ name: `NIFTY ${strike} STRIKE`, px: strike.toLocaleString("en-IN"), chg: "+0.00%" });
-  const toggleIndicator = (i) =>
-    setEnabled((e) => {
-      const next = [...e];
-      next[i] = !next[i];
-      return next.some(Boolean) ? next : e;
-    });
-
-  useEffect(() => {
-    if (!live) return;
-    const id = setInterval(() => setTick((t) => t + 1), 4000);
-    return () => clearInterval(id);
-  }, [live]);
-
-  useEffect(() => {
-    if (tick === 0) return;
-    const strong = INSTRUMENTS.map((m) => ({ m, sig: buildSignal(m, tick, enabled) }))
-      .filter((x) => x.sig.confidence >= 90)
-      .slice(0, 2);
-    if (strong.length > 0) playAlertBeep();
-    strong.forEach(({ m, sig }) => {
-      const fn = sig.buy ? toast.success : toast.error;
-      fn(`Strong Signal: ${m.name}`, {
-        id: `strong-${slug(m.name)}-${tick}`,
-        description: `${sig.dir} · ${sig.confidence}% confidence · demo test model`,
-        style: sig.buy
-          ? { background: "#00D084", color: "#06281C", border: "1px solid #00B573" }
-          : { background: "#F43F5E", color: "#FFFFFF", border: "1px solid #E11D48" },
-      });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick]);
-
-  useEffect(() => {
-    if (!signalFor) return;
-    const sig = buildSignal(signalFor, tick, enabled);
-    const time = new Date().toLocaleTimeString("en-IN", { hour12: false });
-    setHistory((h) =>
-      [{ name: signalFor.name, dir: sig.dir, buy: sig.buy, confidence: sig.confidence, time }, ...h].slice(0, 8)
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signalFor, tick]);
-
-  const px = parseFloat(instrument.px.replace(/,/g, ""));
-  const chgNum = parseFloat(instrument.chg);
-  const hh = mixHash(`hdr-${instrument.name}`);
-  const vol = (1.2 + (hh % 80) / 10).toFixed(1);
-  const fx = (v, dec = 2) =>
-    currency === "USD"
-      ? `$${(v / 84).toLocaleString("en-US", { maximumFractionDigits: dec })}`
-      : `₹${v.toLocaleString("en-IN", { maximumFractionDigits: dec })}`;
-  const up = chgNum >= 0;
-  const hdrStats = [
-    { l: "Volume", v: `${vol}M` },
-    { l: "Bid", v: fx(px * 0.9998) },
-    { l: "Ask", v: fx(px * 1.0002) },
-    { l: "Open", v: fx(px / (1 + chgNum / 100)) },
-    { l: "High", v: fx(px * 1.008) },
-    { l: "Low", v: fx(px * 0.991) },
-    { l: "Value", v: `${fx(px * parseFloat(vol) * 10, 0)} Cr` },
-  ];
-  const funds = buildFundamentals();
-  const altRows = buildAltRows();
-  const selSig = buildSignal(instrument, tick, enabled);
+  const GroupTable = ({ label, list, tone }) => (
+    <div className="min-w-0">
+      <p className={`mb-1 border-b px-2 pb-1 font-mono text-[9px] font-bold uppercase tracking-[0.18em] ${tone === "up" ? "border-green-900 text-green-400" : tone === "down" ? "border-red-900 text-red-400" : "border-[#333] text-[#888]"}`}>
+        {label} {list.length}
+      </p>
+      <table className="w-full font-mono text-[10px]">
+        <tbody>{list.map((s) => <StockRow key={s.sym} s={s} onClick={onSelectStock} />)}</tbody>
+      </table>
+    </div>
+  );
 
   return (
-    <Shell testid="market-view" onBack={onBack} title="Market Terminal"
-      desc="Bloomberg-style demo terminal — every figure on this page is fictional test data.">
-      <div className="space-y-3">
-        <section className="rounded-md border border-[#262626] bg-[#080808]" data-testid="terminal-header">
-          <div className="flex flex-wrap items-center gap-2 border-b border-[#262626] px-3 py-2">
-            <select
-              data-testid="instrument-selector"
-              value={instrumentIdx}
-              onChange={(e) => setInstrumentIdx(+e.target.value)}
-              className="rounded border border-[#333] bg-[#050505] px-2.5 py-1.5 font-mono text-xs font-bold text-amber-400 outline-none focus:border-amber-400"
-            >
-              {INSTRUMENTS.map((m, i) => (
-                <option key={m.name} value={i}>{m.name}</option>
-              ))}
-            </select>
-            {["Related Functions", "Menu"].map((b) => (
-              <button
-                key={b}
-                data-testid={`terminal-${slug(b)}`}
-                onClick={() => toast.info(`${b} — demo control`)}
-                className="rounded border border-[#333] bg-[#111] px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#d7d7d7] transition-colors hover:bg-[#1a1a1a]"
-              >
-                {b} ▾
-              </button>
-            ))}
-            <span className="ml-auto flex items-center gap-2">
-              <button
-                data-testid="market-live-toggle"
-                onClick={() => setLive((l) => !l)}
-                className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                  live ? "border-green-800 bg-green-950/60 text-green-400" : "border-[#333] bg-[#111] text-[#888]"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-green-400 animate-pulse-dot" : "bg-[#666]"}`} />
-                {live ? "Live" : "Paused"}
-              </button>
-              <button
-                data-testid="terminal-refresh"
-                onClick={() => { setTick((t) => t + 1); toast.success("Data refreshed", { description: "Demo feed ticked forward." }); }}
-                className="inline-flex items-center gap-1.5 rounded border border-[#333] bg-[#111] px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#d7d7d7] transition-colors hover:bg-[#1a1a1a]"
-              >
-                <RefreshCw className="h-3 w-3" /> Refresh
-              </button>
-            </span>
+    <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="constituent-board">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1.5">
+        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">{indexName}</span>
+        <span className="font-mono text-[9px] text-[#777]" data-testid="constituent-count">{stocks.length} Constituents</span>
+        <span className="flex items-center gap-3 font-mono text-[9px] font-bold">
+          <span className="text-green-400" data-testid="advances-count">Advance {advances.length}</span>
+          <span className="text-red-400" data-testid="declines-count">Decline {declines.length}</span>
+          <span className="text-[#888]" data-testid="unchanged-count">Unchanged {unchanged.length}</span>
+        </span>
+        <span className="ml-auto">{onToggle && <MinBtn id="min-board" collapsed={collapsed} onClick={onToggle} dark />}</span>
+      </header>
+      <Collapse open={!collapsed}>
+        <div className="max-h-[460px] overflow-y-auto p-2" data-lenis-prevent>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <GroupTable label="Advance" list={advances} tone="up" />
+            <GroupTable label="Decline" list={declines} tone="down" />
           </div>
-
-          <div className="flex flex-wrap items-end gap-x-6 gap-y-2 px-3 py-2.5">
-            <div>
-              <p className="font-mono text-2xl font-bold leading-none text-white" data-testid="terminal-price">{fx(px)}</p>
-              <p className={`mt-1 font-mono text-xs font-bold ${up ? "text-green-400" : "text-red-400"}`} data-testid="terminal-change">
-                {up ? "▲" : "▼"} {fx(Math.abs((px * chgNum) / 100))} ({instrument.chg})
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4 lg:grid-cols-7">
-              {hdrStats.map((s) => (
-                <div key={s.l}>
-                  <p className="font-mono text-[9px] uppercase tracking-wider text-[#777]">{s.l}</p>
-                  <p className="font-mono text-[11px] font-semibold text-[#e5e5e5]">{s.v}</p>
-                </div>
-              ))}
-            </div>
-            <button
-              data-testid="terminal-signal-button"
-              onClick={() => setSignalFor(instrument)}
-              className={`ml-auto inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white transition-all active:scale-95 ${
-                selSig.buy ? "bg-green-600 hover:bg-green-500" : "bg-red-600 hover:bg-red-500"
-              }`}
-            >
-              <Zap className="h-3 w-3" /> Signal · {selSig.dir}
-            </button>
-          </div>
-
-          <nav className="flex flex-wrap items-center gap-1 border-t border-[#262626] px-2 py-1">
-            {NAV_TABS.map((t) => (
-              <button
-                key={t}
-                data-testid={`nav-tab-${slug(t)}`}
-                onClick={() => setNavTab(t)}
-                className={`rounded px-2.5 py-1 font-mono text-[10px] font-semibold transition-colors ${
-                  navTab === t ? "bg-[#1a1a1a] text-amber-400 shadow-[inset_0_-2px_0_#F5A623]" : "text-[#999] hover:text-white"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-            <select
-              data-testid="currency-selector"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="ml-auto rounded border border-[#333] bg-[#050505] px-2 py-1 font-mono text-[10px] font-bold text-[#d7d7d7] outline-none"
-            >
-              <option value="INR">INR ₹</option>
-              <option value="USD">USD $</option>
-            </select>
-            <button
-              data-testid="terminal-settings"
-              onClick={() => toast.info("Terminal settings — demo control")}
-              className="inline-flex items-center gap-1 rounded border border-[#333] bg-[#111] px-2.5 py-1 font-mono text-[10px] font-semibold text-[#d7d7d7] hover:bg-[#1a1a1a]"
-            >
-              <Settings className="h-3 w-3" /> Settings
-            </button>
-          </nav>
-        </section>
-
-        <div className="flex items-center justify-end gap-2">
-          <button data-testid="market-minimize-all" onClick={() => setAll(true)}
-            className="rounded border border-[#333] bg-[#111] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-[#1a1a1a]">
-            Minimize All
-          </button>
-          <button data-testid="market-expand-all" onClick={() => setAll(false)}
-            className="rounded bg-amber-400 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-black transition-all hover:brightness-110">
-            Expand All
-          </button>
-        </div>
-
-        <TermPanel title={`Financial Fundamentals — ${instrument.name}`} id="fund-panel"
-          collapsed={collapsed.fund} onToggle={() => togglePanel("fund")}
-          right={<span className="font-mono text-[9px] text-[#777]">{navTab} · {currency}</span>}>
-          <table className="w-full min-w-[760px] text-left font-mono text-[10px]">
-            <thead>
-              <tr className="border-b border-[#262626] text-[#999]">
-                <th className="px-3 py-1.5 text-left font-semibold">₹ Cr</th>
-                {FY_COLS.map((c) => (
-                  <th key={c} className={`px-3 py-1.5 text-center font-semibold ${c.includes("Est") || c.includes("LTM") ? "text-amber-400" : ""}`}>{c}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {funds.map((r, ri) => (
-                <tr key={ri} className="border-b border-[#1c1c1c] transition-colors hover:bg-white/[0.03]">
-                  <td className={`whitespace-nowrap px-3 py-1 ${r.key ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{r.label}</td>
-                  {r.cells.map((c, ci) => (
-                    <td key={ci} className={`px-3 py-1 text-right ${cellTone[c.tone]}`}>{c.t}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TermPanel>
-
-        <TermPanel title={`Alternative Data Metrics Summary — ${instrument.name}`} id="alt-panel"
-          collapsed={collapsed.alt} onToggle={() => togglePanel("alt")}
-          right={
-            <span className="flex items-center gap-1">
-              {ALT_TABS.map((t) => (
-                <button key={t} data-testid={`alt-tab-${slug(t)}`} onClick={() => setAltTab(t)}
-                  className={`rounded px-2 py-0.5 font-mono text-[9px] font-semibold transition-colors ${altTab === t ? "bg-amber-400 text-black" : "text-[#999] hover:text-white"}`}>
-                  {t}
-                </button>
-              ))}
-            </span>
-          }>
-          <table className="w-full min-w-[680px] text-left font-mono text-[10px]">
-            <thead>
-              <tr className="border-b border-[#262626] text-[#999]">
-                <th className="px-3 py-1.5 font-semibold">Metric</th>
-                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`l-${c}`} className="px-3 py-1.5 text-center font-semibold">{c}</th>)}
-                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`g-${c}`} className="px-3 py-1.5 text-center font-semibold text-amber-400">{c} Δ</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {altRows.map((r) => (
-                <tr key={r.m} className="border-b border-[#1c1c1c]">
-                  <td className="whitespace-nowrap px-3 py-1 text-[#c9c9c9]">{r.m}</td>
-                  {r.lvl.map((v, i) => <td key={i} className="px-3 py-1 text-right text-[#e5e5e5]">{v}</td>)}
-                  {r.gr.map((g, i) => (
-                    <td key={i} className={`px-3 py-1 text-right font-bold ${g >= 0 ? "bg-[#0d2b1a] text-green-400" : "bg-[#3a0d12] text-red-400"}`}>
-                      {g >= 0 ? "+" : ""}{g.toFixed(1)}%
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TermPanel>
-
-        <TermPanel title="Observed Sales YoY Growth" id="sales-panel"
-          collapsed={collapsed.sales} onToggle={() => togglePanel("sales")}
-          right={
-            <span className="flex items-center gap-1">
-              {GROWTH_PERIODS.map((p) => (
-                <button key={p} data-testid={`period-${p.toLowerCase()}`} onClick={() => setGrowthPeriod(p)}
-                  className={`rounded px-2 py-0.5 font-mono text-[9px] font-bold transition-colors ${growthPeriod === p ? "bg-amber-400 text-black" : "text-[#999] hover:text-white"}`}>
-                  {p}
-                </button>
-              ))}
-            </span>
-          }>
-          <div className="flex flex-wrap items-center gap-3 border-b border-[#262626] px-3 py-2">
-            {[
-              { l: "Comp Source", v: compSource, set: setCompSource, opts: ["Analyst Curated (BI)", "Company Reported"], id: "comp-source" },
-              { l: "Growth", v: growthType, set: setGrowthType, opts: ["Year-over-Year", "Quarter-over-Quarter"], id: "growth-type" },
-              { l: "Period", v: periodicity, set: setPeriodicity, opts: ["Weekly", "Monthly"], id: "periodicity" },
-            ].map((c) => (
-              <label key={c.id} className="flex items-center gap-1.5 font-mono text-[10px] text-[#999]">
-                {c.l}:
-                <select data-testid={`sales-${c.id}`} value={c.v} onChange={(e) => c.set(e.target.value)}
-                  className="rounded border border-[#333] bg-[#050505] px-2 py-1 font-semibold text-[#d7d7d7] outline-none">
-                  {c.opts.map((o) => <option key={o}>{o}</option>)}
-                </select>
-              </label>
-            ))}
-            <span className="ml-auto font-mono text-[9px] text-[#777]">{growthPeriod} · {growthType} · {periodicity}</span>
-          </div>
-          <table className="w-full min-w-[900px] text-left font-mono text-[10px]">
-            <thead>
-              <tr className="border-b border-[#262626] text-[#999]">
-                <th className="px-3 py-1.5 font-semibold">Week Ending</th>
-                {SALES_WEEKS.map((w) => <th key={w} className="px-2 py-1.5 text-center font-semibold">{w}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {SALES_ROWS.map((row, ri) => (
-                <tr key={row} className="border-b border-[#1c1c1c]">
-                  <td className={`whitespace-nowrap px-3 py-1 ${ri === 0 ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{row}</td>
-                  {SALES_WEEKS.map((w, wi) => {
-                    const g = (mixHash(`sales-${row}-${w}-${growthPeriod}-${compSource}`) % 300 - 140) / 10;
-                    return (
-                      <td key={w} className={`px-2 py-1 text-right font-bold ${g >= 0 ? "bg-[#0d2b1a] text-green-400" : "bg-[#3a0d12] text-red-400"}`}>
-                        {g >= 0 ? "+" : ""}{g.toFixed(1)}%
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TermPanel>
-
-        <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <NiftyStocksBoard compact collapsed={collapsed.stocks} onToggle={() => togglePanel("stocks")} />
-          <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} />
-          <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="instruments-panel">
-            <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-3 py-1.5">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400">Instruments · Live Signals</span>
-              <MinBtn id="min-inst" collapsed={collapsed.inst} onClick={() => togglePanel("inst")} dark />
-            </header>
-            <Collapse open={!collapsed.inst}>
-              <div className="grid max-h-[560px] grid-cols-1 gap-2 overflow-y-auto p-3 2xl:grid-cols-2" data-lenis-prevent>
-                {INSTRUMENTS.map((m) => {
-                  const active = instrument.name === m.name;
-                  const sig = buildSignal(m, tick, enabled);
-                  return (
-                    <div
-                      key={m.name}
-                      role="button"
-                      tabIndex={0}
-                      data-testid={`market-instrument-${slug(m.name)}`}
-                      onClick={() => setInstrumentIdx(INSTRUMENTS.indexOf(m))}
-                      onKeyDown={(e) => e.key === "Enter" && setInstrumentIdx(INSTRUMENTS.indexOf(m))}
-                      className={`group cursor-pointer rounded border p-2.5 transition-colors ${
-                        active ? "border-amber-400 bg-amber-400/5" : "border-[#262626] bg-[#0d0d0d] hover:border-[#444]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          data-testid={`market-light-${slug(m.name)}`}
-                          className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors duration-500 ${
-                            sig.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"
-                          }`}
-                        >
-                          {sig.buy ? <TrendingUp className="h-3.5 w-3.5" strokeWidth={2.5} /> : <TrendingDown className="h-3.5 w-3.5" strokeWidth={2.5} />}
-                          <span className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#080808] animate-pulse-dot ${sig.buy ? "bg-green-400" : "bg-red-400"}`} />
-                        </span>
-                        <button
-                          data-testid={`market-signal-${slug(m.name)}`}
-                          onClick={(e) => { e.stopPropagation(); setSignalFor(m); }}
-                          className="inline-flex shrink-0 items-center gap-1 rounded bg-[#1a1a1a] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-amber-400 hover:text-black"
-                        >
-                          <Zap className="h-3 w-3" /> Signal
-                        </button>
-                      </div>
-                      <p className={`mt-2 text-[10px] font-bold uppercase leading-snug tracking-wide ${active ? "text-amber-400" : "text-[#c9c9c9]"}`}>{m.name}</p>
-                      <p className="mt-0.5 font-mono text-[11px] font-semibold text-white">{fx(parseFloat(m.px.replace(/,/g, "")))}</p>
-                      <p className={`font-mono text-[10px] font-semibold ${m.chg.startsWith("+") ? "text-green-400" : "text-red-400"}`}>{m.chg}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </Collapse>
-          </section>
-        </div>
-
-        <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="signal-history">
-          <header className="flex items-center justify-between border-b border-[#262626] bg-[#0d0d0d] px-3 py-1.5">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400">Signal History</span>
-            {history.length > 0 && (
-              <button data-testid="signal-history-clear" onClick={() => setHistory([])}
-                className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#777] transition-colors hover:text-red-400">
-                Clear
-              </button>
-            )}
-          </header>
-          {history.length === 0 ? (
-            <p className="px-3 py-3 font-mono text-[10px] text-[#777]">Open any Signal panel to start logging demo signals here.</p>
-          ) : (
-            <div className="divide-y divide-[#1c1c1c]">
-              {history.map((h, i) => (
-                <div key={`${h.time}-${i}`} data-testid={`signal-history-row-${i}`} className="flex items-center justify-between gap-3 px-3 py-1.5 font-mono text-[10px]">
-                  <span className="text-[#777]">{h.time}</span>
-                  <span className="font-bold text-[#e5e5e5]">{h.name}</span>
-                  <span className={`rounded px-2 py-0.5 font-bold ${h.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>{h.dir}</span>
-                  <span className="font-semibold text-[#999]">{h.confidence}%</span>
-                </div>
-              ))}
+          {unchanged.length > 0 && (
+            <div className="mt-3">
+              <GroupTable label="Unchanged" list={unchanged} tone="flat" />
             </div>
           )}
-        </section>
-      </div>
-
-      <SignalDrawer
-        instrument={signalFor}
-        tick={tick}
-        live={live}
-        onToggleLive={() => setLive((l) => !l)}
-        enabled={enabled}
-        onToggleIndicator={toggleIndicator}
-        onRefresh={() => setTick((t) => t + 1)}
-        onClose={() => setSignalFor(null)}
-      />
-    </Shell>
+        </div>
+      </Collapse>
+    </section>
   );
-}
+};
