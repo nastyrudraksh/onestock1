@@ -28,11 +28,13 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
   const [panels, setPanels] = useState(ALL_PANELS);
   const [hidden, setHidden] = useState({});
   const [maximized, setMaximized] = useState(null);
+  const DEFAULT_SIZES = [28, 36, 36];
   const [sizes, setSizes] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("market-dashboard-sizes")) || [33, 33, 34];
+      const saved = JSON.parse(localStorage.getItem("market-dashboard-sizes"));
+      return Array.isArray(saved) && saved.length === 3 ? saved : DEFAULT_SIZES;
     } catch (e) {
-      return [33, 33, 34];
+      return DEFAULT_SIZES;
     }
   });
 
@@ -65,49 +67,54 @@ export default function MarketDashboard({ tick, onStrike, components = {} }) {
   }
 
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h3 className="font-display text-lg font-bold">MARKET · {selectedIndex}</h3>
+    <div className="min-w-0 space-y-1">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1">
+          <h3 className="font-display text-sm font-bold tracking-tight">MARKET · {selectedIndex}</h3>
           <select value={selectedIndex} onChange={(e) => setSelectedIndex(e.target.value)}
-            className="rounded border border-edge bg-white px-3 py-1 text-sm">
+            className="rounded border border-edge bg-white px-2 py-1 text-xs">
             {INDEX_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <button className="rounded-full border border-edge bg-white px-3 py-1 text-sm">Refresh</button>
-          <button className="rounded-full border border-edge bg-white px-3 py-1 text-sm">Live</button>
+          <button className="rounded-full border border-edge bg-white px-2 py-0.5 text-[10px]">Refresh</button>
+          <button className="rounded-full border border-edge bg-white px-2 py-0.5 text-[10px]">Live</button>
         </div>
       </div>
-      <div className="mb-3 flex items-center gap-2">
-        <select onChange={(e) => addPanel(e.target.value)} defaultValue="" className="rounded border border-edge bg-white px-3 py-1 text-sm">
+      <div className="mb-2 flex items-center gap-2">
+        <select onChange={(e) => addPanel(e.target.value)} defaultValue="" className="rounded border border-edge bg-white px-2 py-1 text-xs">
           <option value="">Add panel...</option>
           {ALL_PANELS.map((p) => (
             <option key={p.id} value={p.id}>{p.label}</option>
           ))}
         </select>
-        <button onClick={() => { setHidden({}); setMaximized(null); setPanels(ALL_PANELS); }} className="rounded-full border border-edge bg-white px-3 py-1 text-sm">Reset</button>
+        <button onClick={() => { setHidden({}); setMaximized(null); setPanels(ALL_PANELS); }} className="rounded-full border border-edge bg-white px-2 py-0.5 text-[10px]">Reset</button>
       </div>
 
-      <PanelGroup direction="horizontal" onUpdate={({ sizes: s }) => setSizes(s)}>
+      <PanelGroup direction="horizontal" className="w-full min-w-0 overflow-hidden" onUpdate={({ sizes: s }) => setSizes(s)}>
         {panels.map((p, i) => {
           if (hidden[p.id]) return null;
           const Comp = components[p.key];
           return (
-            <Panel key={p.id} defaultSize={sizes[i] ?? (100 / panels.length)}>
-              <div className="m-3 rounded-2xl border border-edge bg-white p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="font-mono text-sm font-semibold">{p.label}</div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setMaximized(p.id)} className="rounded-full border border-edge bg-white px-2 py-1 text-xs">Max</button>
-                    <button onClick={() => togglePanel(p.id)} className="rounded-full border border-edge bg-white px-2 py-1 text-xs">Min</button>
-                    <button onClick={() => removePanel(p.id)} className="rounded-full border border-edge bg-white px-2 py-1 text-xs">Remove</button>
+            <Panel
+              key={p.id}
+              defaultSize={sizes[i] ?? (100 / panels.length)}
+              minSize={16}
+              className="min-w-0"
+            >
+              <div className="m-0.5 min-w-0 overflow-hidden rounded-lg border border-edge bg-white p-1">
+                  <div className="mb-1 flex items-center justify-between gap-1">
+                    <div className="font-mono text-[11px] font-semibold">{p.label}</div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setMaximized(p.id)} className="rounded-full border border-edge bg-white px-1 py-0.5 text-[9px]">Max</button>
+                      <button onClick={() => togglePanel(p.id)} className="rounded-full border border-edge bg-white px-1 py-0.5 text-[9px]">Min</button>
+                      <button onClick={() => removePanel(p.id)} className="rounded-full border border-edge bg-white px-1 py-0.5 text-[9px]">Remove</button>
+                    </div>
+                  </div>
+                  <div className="min-w-0 overflow-hidden">
+                    {Comp ? <Comp tick={tick} onStrike={onStrike} selectedIndex={selectedIndex} /> : <div className="text-sm text-slate">Component not available</div>}
                   </div>
                 </div>
-                <div>
-                  {Comp ? <Comp tick={tick} onStrike={onStrike} selectedIndex={selectedIndex} /> : <div className="text-sm text-slate">Component not available</div>}
-                </div>
-              </div>
             </Panel>
           );
         })}

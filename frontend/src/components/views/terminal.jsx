@@ -210,7 +210,7 @@ function StockDetailDrawer({ stock, onClose, inWatch, onToggleWatch }) {
           )}
           {tab === "oi" && (
             <div className="space-y-2">
-              {[["Call OI", callOi, "bg-red-500"], ["Put OI", putOi, "bg-green-500"]].map(([l, v, c]) => (
+              {[["Call OI", callOi, "bg-rose-500"], ["Put OI", putOi, "bg-signal"]].map(([l, v, c]) => (
                 <div key={l} className="rounded border border-[#262626] p-2.5">
                   <div className="flex justify-between font-mono text-[10px]">
                     <span className="text-[#999]">{l}</span><span className="font-bold text-white">{v}L</span>
@@ -248,6 +248,7 @@ export function MarketView({ onBack }) {
   const [enabled, setEnabled] = useState([true, true, true, true, true]);
   const [history, setHistory] = useState([]);
   const [signalFor, setSignalFor] = useState(null);
+  const [demoTrades, setDemoTrades] = useState([]);
   const [detailStock, setDetailStock] = useState(null);
   const [sectorFilter, setSectorFilter] = useState(null);
   const [watchlist, toggleWatch] = useWatchlist();
@@ -305,6 +306,23 @@ export function MarketView({ onBack }) {
     setHistory((h) => [{ name: signalFor.name, dir: sig.dir, buy: sig.buy, confidence: sig.confidence, time }, ...h].slice(0, 8));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signalFor, tick]);
+
+  const handleExecuteDemoTrade = useCallback((trade) => {
+    const entry = {
+      ...trade,
+      id: `${trade.symbol}-${trade.time}-${trade.action}`,
+      side: trade.action,
+      note: `${trade.action} ${trade.quantity} lots`,
+    };
+    setDemoTrades((prev) => [entry, ...prev].slice(0, 8));
+    setHistory((prev) => [{
+      name: trade.symbol,
+      dir: trade.type,
+      buy: trade.action === "BUY",
+      confidence: 92,
+      time: trade.time,
+    }, ...prev].slice(0, 8));
+  }, []);
 
   const stocks = index.stocks;
   const derived = useMemo(() => {
@@ -438,23 +456,36 @@ export function MarketView({ onBack }) {
   );
 
   return (
-    <section data-testid="market-view" className="px-2 py-3 sm:px-3">
+    <section data-testid="market-view" className="px-1 py-2 sm:px-2">
       <button data-testid="market-back-button" onClick={onBack}
-        className="mb-2.5 inline-flex items-center gap-1.5 rounded border border-edge bg-white px-3 py-1.5 font-mono text-[10px] font-semibold text-slate transition-colors hover:bg-mist hover:text-ink">
+        className="mb-2 inline-flex items-center gap-1.5 rounded border border-edge bg-white px-2.5 py-1 font-mono text-[9px] font-semibold text-slate transition-colors hover:bg-mist hover:text-ink">
         ← Back to Dashboard
       </button>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
+        <div className="flex items-center justify-end gap-2">
+          <span className="mr-auto font-mono text-[9px] font-bold uppercase tracking-wider text-amber-500/80">Simulated Market Data · Demo</span>
+          <button data-testid="market-minimize-all" onClick={() => setAll(true)}
+            className="rounded border border-[#333] bg-[#111] px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-[#1a1a1a]">
+            Minimize All
+          </button>
+          <button data-testid="market-expand-all" onClick={() => setAll(false)}
+            className="rounded bg-amber-400 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-black transition-all hover:brightness-110">
+            Expand All
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 items-stretch gap-1.5 xl:grid-cols-3">
         {/* 1. MARKET HEADER */}
-        <section className="rounded-md border border-[#262626] bg-[#080808]" data-testid="terminal-header">
-          <div className="flex flex-wrap items-center gap-2 border-b border-[#262626] px-2.5 py-1.5">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-[#777]">Market</span>
+        <section className="rounded-sm border border-[#262626] bg-[#080808]" data-testid="terminal-header">
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#262626] px-2 py-1">
+            <span className="font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-[#777]">Market</span>
             <select data-testid="index-selector" value={indexName} onChange={(e) => { setIndexName(e.target.value); setSectorFilter(null); }}
-              className="rounded border border-[#333] bg-[#050505] px-2.5 py-1.5 font-mono text-xs font-bold text-amber-400 outline-none focus:border-amber-400">
+              className="rounded border border-[#333] bg-[#050505] px-2 py-1 font-mono text-[10px] font-bold text-amber-400 outline-none focus:border-amber-400">
               {INDEX_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
-            <span className="font-mono text-[9px] text-[#777]">{stocks.length} Constituents</span>
-            <span className="hidden items-center gap-1.5 font-mono text-[9px] font-bold sm:flex">
+            <span className="font-mono text-[8px] text-[#777]">{stocks.length} Constituents</span>
+            <span className="hidden items-center gap-1.5 font-mono text-[8px] font-bold sm:flex">
               <span className="text-green-400" data-testid="advances-count">Advance {derived.advances.length}</span>
               <span className="text-red-400" data-testid="declines-count">Decline {derived.declines.length}</span>
               <span className="text-[#888]" data-testid="unchanged-count">Unchanged {derived.unchanged.length}</span>
@@ -478,14 +509,14 @@ export function MarketView({ onBack }) {
             </span>
           </div>
 
-          <div className="flex flex-wrap items-end gap-x-5 gap-y-2 px-2.5 py-2">
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-1 px-2 py-1.5">
             <div>
-              <p className="font-mono text-xl font-bold leading-none text-white" data-testid="terminal-price">{fx(px)}</p>
-              <p className={`mt-1 font-mono text-[11px] font-bold ${up ? "text-green-400" : "text-red-400"}`} data-testid="terminal-change">
+              <p className="font-mono text-lg font-bold leading-none text-white" data-testid="terminal-price">{fx(px)}</p>
+              <p className={`mt-0.5 font-mono text-[10px] font-bold ${up ? "text-green-400" : "text-red-400"}`} data-testid="terminal-change">
                 {up ? "▲" : "▼"} {fx(Math.abs((px * chgNum) / 100))} ({index.chg})
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-x-5 gap-y-1 sm:grid-cols-4 lg:grid-cols-7">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-4 lg:grid-cols-7">
               {hdrStats.map((s) => (
                 <div key={s.l}>
                   <p className="font-mono text-[8px] uppercase tracking-wider text-[#777]">{s.l}</p>
@@ -495,12 +526,12 @@ export function MarketView({ onBack }) {
             </div>
             <button data-testid="terminal-signal-button"
               onClick={() => setSignalFor({ name: indexName, px: index.px, chg: index.chg })}
-              className={`ml-auto inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white transition-all active:scale-95 ${idxSig.buy ? "bg-green-600 hover:bg-green-500" : "bg-red-600 hover:bg-red-500"}`}>
+              className={`ml-auto inline-flex items-center gap-1 rounded px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-wider text-white transition-all active:scale-95 ${idxSig.buy ? "bg-green-600 hover:bg-green-500" : "bg-red-600 hover:bg-red-500"}`}>
               <Zap className="h-3 w-3" /> Signal · {idxSig.dir}
             </button>
           </div>
 
-          <nav className="flex flex-wrap items-center gap-1 border-t border-[#262626] px-2 py-1">
+          <nav className="flex flex-wrap items-center gap-1 border-t border-[#262626] px-2 py-0.5">
             {NAV_TABS.map((t) => (
               <button key={t} data-testid={`nav-tab-${slug(t)}`} onClick={() => setNavTab(t)}
                 className={`rounded px-2 py-0.5 font-mono text-[9px] font-semibold transition-colors ${navTab === t ? "bg-[#1a1a1a] text-amber-400 shadow-[inset_0_-2px_0_#F5A623]" : "text-[#999] hover:text-white"}`}>
@@ -518,18 +549,50 @@ export function MarketView({ onBack }) {
             </button>
           </nav>
         </section>
-
-        <div className="flex items-center justify-end gap-2">
-          <span className="mr-auto font-mono text-[9px] font-bold uppercase tracking-wider text-amber-500/80">Simulated Market Data · Demo</span>
-          <button data-testid="market-minimize-all" onClick={() => setAll(true)}
-            className="rounded border border-[#333] bg-[#111] px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-[#1a1a1a]">
-            Minimize All
-          </button>
-          <button data-testid="market-expand-all" onClick={() => setAll(false)}
-            className="rounded bg-amber-400 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-black transition-all hover:brightness-110">
-            Expand All
-          </button>
+        {/* 9. OPTION INTELLIGENCE */}
+        <TermPanel title={`Option Intelligence — ${indexName}`} id="oiintel-panel" collapsed={collapsed.oiintel} onToggle={() => togglePanel("oiintel")}
+          right={<span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
+          <div className="grid grid-cols-3 gap-px bg-[#1c1c1c]">
+            {[
+              ["Call OI", `${derived.totalCall.toFixed(1)}L`, "text-rose-400"],
+              ["Put OI", `${derived.totalPut.toFixed(1)}L`, "text-signal"],
+              ["PCR", derived.pcr.toFixed(2), derived.pcr >= 1 ? "text-signal" : "text-rose-400"],
+              ["Call OI Chg", `${derived.oi.reduce((a, r) => a + r.callChg, 0) > 0 ? "+" : ""}${(derived.oi.reduce((a, r) => a + r.callChg, 0) / 100).toFixed(1)}L`, "text-white"],
+              ["Put OI Chg", `${derived.oi.reduce((a, r) => a + r.putChg, 0) > 0 ? "+" : ""}${(derived.oi.reduce((a, r) => a + r.putChg, 0) / 100).toFixed(1)}L`, "text-white"],
+              ["Max Call OI", derived.maxCall.strike.toLocaleString("en-IN"), "text-rose-400"],
+              ["Max Put OI", derived.maxPut.strike.toLocaleString("en-IN"), "text-signal"],
+              ["ATM", OI_SPOT.toLocaleString("en-IN"), "text-amber-400"],
+              ["Support / Resistance", `${derived.maxPut.strike.toLocaleString("en-IN")} / ${derived.maxCall.strike.toLocaleString("en-IN")}`, "text-white"],
+            ].map(([l, v, t]) => (
+              <div key={l} className="bg-[#080808]"><StatMini l={l} v={v} tone={t} /></div>
+            ))}
+          </div>
+        </TermPanel>
+        {/* 8. INDEX PERFORMANCE */}
+        <TermPanel title="Index Performance" id="idxperf-panel" collapsed={collapsed.idxperf} onToggle={() => togglePanel("idxperf")}>
+          <table className="w-full font-mono text-[10px]">
+            <tbody>
+              {INDEX_NAMES.map((n) => {
+                const ix = INDICES[n];
+                const ixUp = ix.chg.startsWith("+");
+                return (
+                  <tr key={n} data-testid={`idxperf-${slug(n)}`} onClick={() => { setIndexName(n); setSectorFilter(null); }}
+                    className={`cursor-pointer border-b border-[#1c1c1c] hover:bg-white/[0.05] ${n === indexName ? "bg-amber-400/5" : ""}`}>
+                    <td className={`px-2.5 py-1 font-bold ${n === indexName ? "text-amber-400" : "text-white"}`}>{n}</td>
+                    <td className="px-2.5 py-1 text-right text-[#e5e5e5]">{ix.px}</td>
+                    <td className={`px-2.5 py-1 text-right ${ixUp ? "text-green-400" : "text-red-400"}`}>
+                      {((parseFloat(ix.px.replace(/,/g, "")) * parseFloat(ix.chg)) / 100).toFixed(2)}
+                    </td>
+                    <td className={`px-2.5 py-1 text-right font-bold ${ixUp ? "text-green-400" : "text-red-400"}`}>{ix.chg}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TermPanel>
         </div>
+
+
 
         {/* 2. MARKET BREADTH */}
         <TermPanel title="Market Breadth" id="breadth-panel" collapsed={collapsed.breadth} onToggle={() => togglePanel("breadth")} right={refreshBtn}>
@@ -568,7 +631,7 @@ export function MarketView({ onBack }) {
             <span className="ml-auto flex items-center gap-1.5">{refreshBtn}<MinBtn id="min-board" collapsed={collapsed.board} onClick={() => togglePanel("board")} dark /></span>
           </header>
           <Collapse open={!collapsed.board}>
-            <div className="max-h-[400px] overflow-y-auto p-2" data-lenis-prevent>
+            <div className="max-h-[300px] overflow-y-auto p-2" data-lenis-prevent>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <BoardGroup label="Advance" list={visibleStocks.filter((s) => s.chgPct > 0)} tone="up" />
                 <BoardGroup label="Decline" list={visibleStocks.filter((s) => s.chgPct < 0)} tone="down" />
@@ -710,7 +773,7 @@ export function MarketView({ onBack }) {
             </span>
           }>
           <div className="p-2">
-            <div className="h-36">
+            <div className="h-28">
               {chartType === "Candle" ? (
                 <CandleChart className="h-full w-full" />
               ) : (
@@ -743,48 +806,7 @@ export function MarketView({ onBack }) {
           </div>
         </TermPanel>
 
-        {/* 8. INDEX PERFORMANCE */}
-        <TermPanel title="Index Performance" id="idxperf-panel" collapsed={collapsed.idxperf} onToggle={() => togglePanel("idxperf")}>
-          <table className="w-full font-mono text-[10px]">
-            <tbody>
-              {INDEX_NAMES.map((n) => {
-                const ix = INDICES[n];
-                const ixUp = ix.chg.startsWith("+");
-                return (
-                  <tr key={n} data-testid={`idxperf-${slug(n)}`} onClick={() => { setIndexName(n); setSectorFilter(null); }}
-                    className={`cursor-pointer border-b border-[#1c1c1c] hover:bg-white/[0.05] ${n === indexName ? "bg-amber-400/5" : ""}`}>
-                    <td className={`px-2.5 py-1 font-bold ${n === indexName ? "text-amber-400" : "text-white"}`}>{n}</td>
-                    <td className="px-2.5 py-1 text-right text-[#e5e5e5]">{ix.px}</td>
-                    <td className={`px-2.5 py-1 text-right ${ixUp ? "text-green-400" : "text-red-400"}`}>
-                      {((parseFloat(ix.px.replace(/,/g, "")) * parseFloat(ix.chg)) / 100).toFixed(2)}
-                    </td>
-                    <td className={`px-2.5 py-1 text-right font-bold ${ixUp ? "text-green-400" : "text-red-400"}`}>{ix.chg}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </TermPanel>
 
-        {/* 9. OPTION INTELLIGENCE */}
-        <TermPanel title={`Option Intelligence — ${indexName}`} id="oiintel-panel" collapsed={collapsed.oiintel} onToggle={() => togglePanel("oiintel")}
-          right={<span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
-          <div className="grid grid-cols-3 gap-px bg-[#1c1c1c] sm:grid-cols-5 lg:grid-cols-9">
-            {[
-              ["Call OI", `${derived.totalCall.toFixed(1)}L`, "text-red-400"],
-              ["Put OI", `${derived.totalPut.toFixed(1)}L`, "text-green-400"],
-              ["PCR", derived.pcr.toFixed(2), derived.pcr >= 1 ? "text-green-400" : "text-red-400"],
-              ["Call OI Chg", `${derived.oi.reduce((a, r) => a + r.callChg, 0) > 0 ? "+" : ""}${(derived.oi.reduce((a, r) => a + r.callChg, 0) / 100).toFixed(1)}L`, "text-white"],
-              ["Put OI Chg", `${derived.oi.reduce((a, r) => a + r.putChg, 0) > 0 ? "+" : ""}${(derived.oi.reduce((a, r) => a + r.putChg, 0) / 100).toFixed(1)}L`, "text-white"],
-              ["Max Call OI", derived.maxCall.strike.toLocaleString("en-IN"), "text-red-400"],
-              ["Max Put OI", derived.maxPut.strike.toLocaleString("en-IN"), "text-green-400"],
-              ["ATM", OI_SPOT.toLocaleString("en-IN"), "text-amber-400"],
-              ["Support / Resistance", `${derived.maxPut.strike.toLocaleString("en-IN")} / ${derived.maxCall.strike.toLocaleString("en-IN")}`, "text-white"],
-            ].map(([l, v, t]) => (
-              <div key={l} className="bg-[#080808]"><StatMini l={l} v={v} tone={t} /></div>
-            ))}
-          </div>
-        </TermPanel>
 
         {/* 10. OPTION CHAIN (existing) + 11. OI ACTIVITY */}
         <div className="grid grid-cols-1 items-start gap-1.5 xl:grid-cols-2">
@@ -800,18 +822,18 @@ export function MarketView({ onBack }) {
               </thead>
               <tbody>
                 {derived.oi.map((r) => {
-                  const flag = r.callChg > 20 ? ["Call OI Increase", "bg-red-500/15 text-red-400"]
-                    : r.putChg > 20 ? ["Put OI Increase", "bg-green-500/15 text-green-400"]
-                    : r.callChg < -40 ? ["Call Unwinding", "bg-green-500/10 text-green-400"]
-                    : r.putChg < -40 ? ["Put Unwinding", "bg-red-500/10 text-red-400"]
+                  const flag = r.callChg > 20 ? ["Call OI Increase", "bg-rose-500/15 text-rose-400"]
+                    : r.putChg > 20 ? ["Put OI Increase", "bg-signal/15 text-signal"]
+                    : r.callChg < -40 ? ["Call Unwinding", "bg-signal/10 text-signal"]
+                    : r.putChg < -40 ? ["Put Unwinding", "bg-rose-500/10 text-rose-400"]
                     : ["Neutral", "bg-white/5 text-[#888]"];
                   return (
                     <tr key={r.strike} onClick={() => openStrike(r.strike)} className="cursor-pointer border-b border-[#1c1c1c] hover:bg-white/[0.05]">
                       <td className="px-2 py-1 text-center font-bold text-white">{r.strike}</td>
                       <td className="px-2 py-1 text-center text-[#e5e5e5]">{r.callOi}</td>
-                      <td className={`px-2 py-1 text-center font-bold ${r.callChg >= 0 ? "text-green-400" : "text-red-400"}`}>{r.callChg}%</td>
+                      <td className={`px-2 py-1 text-center font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.callChg}%</td>
                       <td className="px-2 py-1 text-center text-[#e5e5e5]">{r.putOi}</td>
-                      <td className={`px-2 py-1 text-center font-bold ${r.putChg >= 0 ? "text-green-400" : "text-red-400"}`}>{r.putChg}%</td>
+                      <td className={`px-2 py-1 text-center font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.putChg}%</td>
                       <td className="px-2 py-1 text-center"><span className={`rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${flag[1]}`}>{flag[0]}</span></td>
                     </tr>
                   );
@@ -855,7 +877,7 @@ export function MarketView({ onBack }) {
 
           <TermPanel title="Market Sentiment" id="sentiment-panel" collapsed={collapsed.sentiment} onToggle={() => togglePanel("sentiment")}
             right={<span className="font-mono text-[9px] text-[#777]">DEMO / DERIVED INDICATOR</span>}>
-            <div className="p-3">
+            <div className="p-2">
               <div className="flex items-baseline justify-between">
                 <span className={`font-display text-2xl font-bold ${derived.sentiment >= 60 ? "text-green-400" : derived.sentiment >= 40 ? "text-amber-400" : "text-red-400"}`} data-testid="sentiment-score">
                   {derived.sentiment >= 60 ? "Bullish" : derived.sentiment >= 40 ? "Neutral" : "Bearish"}
@@ -878,28 +900,28 @@ export function MarketView({ onBack }) {
         {/* 14. LIVE SIGNALS (existing) + WATCHLIST */}
         <div className="grid grid-cols-1 items-start gap-1.5 xl:grid-cols-3">
           <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808] xl:col-span-2" data-testid="instruments-panel">
-            <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
-              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Instruments · Live Signals</span>
+            <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2 py-1">
+              <span className="font-mono text-[13px] font-bold uppercase tracking-[0.06em] text-amber-400">Instruments · Live Signals</span>
               <MinBtn id="min-inst" collapsed={collapsed.inst} onClick={() => togglePanel("inst")} dark />
             </header>
             <Collapse open={!collapsed.inst}>
-              <div className="grid max-h-[380px] grid-cols-1 gap-1.5 overflow-y-auto p-2 sm:grid-cols-2" data-lenis-prevent>
+              <div className="grid max-h-[420px] grid-cols-1 gap-1 overflow-y-auto p-1 sm:grid-cols-2" data-lenis-prevent>
                 {INSTRUMENTS.map((m) => {
                   const sig = buildSignal(m, tick, enabled);
                   return (
                     <div key={m.name} role="button" tabIndex={0} data-testid={`market-instrument-${slug(m.name)}`}
                       onClick={() => setDetailStock({ sym: m.name, name: m.name, ltp: m.px.replace(/,/g, ""), chgPct: parseFloat(m.chg), volume: "2.4", oi: "—" })}
                       onKeyDown={(e) => e.key === "Enter" && setDetailStock(m)}
-                      className="group flex cursor-pointer items-center justify-between gap-2 rounded border border-[#262626] bg-[#0d0d0d] px-2 py-1.5 transition-colors hover:border-[#444]">
+                      className="group flex cursor-pointer items-center justify-between gap-2 rounded border border-[#262626] bg-[#0d0d0d] px-2 py-1 transition-colors hover:border-[#444]">
                       <span className="flex min-w-0 items-center gap-2">
                         <span data-testid={`market-light-${slug(m.name)}`}
-                          className={`relative flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors duration-500 ${sig.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
+                          className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors duration-500 ${sig.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
                           {sig.buy ? <TrendingUp className="h-3 w-3" strokeWidth={2.5} /> : <TrendingDown className="h-3 w-3" strokeWidth={2.5} />}
                           <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-[#080808] animate-pulse-dot ${sig.buy ? "bg-green-400" : "bg-red-400"}`} />
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-[9px] font-bold uppercase tracking-wide text-[#c9c9c9]">{m.name}</span>
-                          <span className="block font-mono text-[9px]">
+                          <span className="block truncate text-[11px] font-bold uppercase tracking-wide text-[#c9c9c9]">{m.name}</span>
+                          <span className="block font-mono text-[11px]">
                             <span className="font-semibold text-white">₹{m.px}</span>{" "}
                             <span className={`font-semibold ${m.chg.startsWith("+") ? "text-green-400" : "text-red-400"}`}>{m.chg}</span>
                           </span>
@@ -907,8 +929,8 @@ export function MarketView({ onBack }) {
                       </span>
                       <button data-testid={`market-signal-${slug(m.name)}`}
                         onClick={(e) => { e.stopPropagation(); setSignalFor(m); }}
-                        className="inline-flex shrink-0 items-center gap-1 rounded bg-[#1a1a1a] px-1.5 py-1 font-mono text-[8px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-amber-400 hover:text-black">
-                        <Zap className="h-2.5 w-2.5" /> Signal
+                        className="inline-flex shrink-0 items-center gap-1 rounded bg-[#1a1a1a] px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#999] transition-colors hover:bg-amber-400 hover:text-black">
+                        <Zap className="h-3 w-3" /> Signal
                       </button>
                     </div>
                   );
@@ -957,7 +979,7 @@ export function MarketView({ onBack }) {
           }>
           <div className="divide-y divide-[#1c1c1c]">
             {NEWS_ITEMS.filter((n) => newsFilter === "ALL" || n.tag === newsFilter).map((n, i) => (
-              <div key={i} className="flex items-center gap-3 px-2.5 py-1.5 font-mono text-[10px]">
+              <div key={i} className="flex items-center gap-3 px-2 py-1 font-mono text-[10px]">
                 <span className="text-[#777]">{n.t}</span>
                 <span className="rounded bg-white/5 px-1.5 py-0.5 text-[8px] font-bold text-[#999]">{n.tag}</span>
                 <span className="font-bold text-amber-400/90">{n.sym}</span>
@@ -965,7 +987,7 @@ export function MarketView({ onBack }) {
               </div>
             ))}
           </div>
-          <p className="border-t border-[#262626] px-2.5 py-1.5 font-mono text-[9px] text-[#777]">Demo headlines — no real news feed connected.</p>
+          <p className="border-t border-[#262626] px-2 py-1 font-mono text-[9px] text-[#777]">Demo headlines — no real news feed connected.</p>
         </TermPanel>
 
         {/* 16. FINANCIAL FUNDAMENTALS */}
@@ -974,18 +996,18 @@ export function MarketView({ onBack }) {
           <table className="w-full min-w-[760px] text-left font-mono text-[10px]">
             <thead>
               <tr className="border-b border-[#262626] text-[#999]">
-                <th className="px-3 py-1.5 text-left font-semibold">₹ Cr</th>
+                <th className="px-2 py-1 text-left font-semibold">₹ Cr</th>
                 {FY_COLS.map((c) => (
-                  <th key={c} className={`px-3 py-1.5 text-center font-semibold ${c.includes("Est") || c.includes("LTM") ? "text-amber-400" : ""}`}>{c}</th>
+                  <th key={c} className={`px-2 py-1 text-center font-semibold ${c.includes("Est") || c.includes("LTM") ? "text-amber-400" : ""}`}>{c}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {funds.map((r, ri) => (
                 <tr key={ri} className="border-b border-[#1c1c1c] transition-colors hover:bg-white/[0.03]">
-                  <td className={`whitespace-nowrap px-3 py-1 ${r.key ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{r.label}</td>
+                  <td className={`whitespace-nowrap px-2 py-0.5 ${r.key ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{r.label}</td>
                   {r.cells.map((c, ci) => (
-                    <td key={ci} className={`px-3 py-1 text-right ${cellTone[c.tone]}`}>{c.t}</td>
+                    <td key={ci} className={`px-2 py-0.5 text-right ${cellTone[c.tone]}`}>{c.t}</td>
                   ))}
                 </tr>
               ))}
@@ -1008,18 +1030,18 @@ export function MarketView({ onBack }) {
           <table className="w-full min-w-[680px] text-left font-mono text-[10px]">
             <thead>
               <tr className="border-b border-[#262626] text-[#999]">
-                <th className="px-3 py-1.5 font-semibold">Metric</th>
-                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`l-${c}`} className="px-3 py-1.5 text-center font-semibold">{c}</th>)}
-                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`g-${c}`} className="px-3 py-1.5 text-center font-semibold text-amber-400">{c} Δ</th>)}
+                <th className="px-2 py-1 font-semibold">Metric</th>
+                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`l-${c}`} className="px-2 py-1 text-center font-semibold">{c}</th>)}
+                {["91 Day", "28 Day", "7 Day"].map((c) => <th key={`g-${c}`} className="px-2 py-1 text-center font-semibold text-amber-400">{c} Δ</th>)}
               </tr>
             </thead>
             <tbody>
               {altRows.map((r) => (
                 <tr key={r.m} className="border-b border-[#1c1c1c]">
-                  <td className="whitespace-nowrap px-3 py-1 text-[#c9c9c9]">{r.m}</td>
-                  {r.lvl.map((v, i) => <td key={i} className="px-3 py-1 text-right text-[#e5e5e5]">{v}</td>)}
+                  <td className="whitespace-nowrap px-2 py-0.5 text-[#c9c9c9]">{r.m}</td>
+                  {r.lvl.map((v, i) => <td key={i} className="px-2 py-0.5 text-right text-[#e5e5e5]">{v}</td>)}
                   {r.gr.map((g, i) => (
-                    <td key={i} className={`px-3 py-1 text-right font-bold ${g >= 0 ? "bg-[#0d2b1a] text-green-400" : "bg-[#3a0d12] text-red-400"}`}>
+                    <td key={i} className={`px-2 py-0.5 text-right font-bold ${g >= 0 ? "bg-[#0d2b1a] text-green-400" : "bg-[#3a0d12] text-red-400"}`}>
                       {g >= 0 ? "+" : ""}{g.toFixed(1)}%
                     </td>
                   ))}
@@ -1041,7 +1063,7 @@ export function MarketView({ onBack }) {
               ))}
             </span>
           }>
-          <div className="flex flex-wrap items-center gap-3 border-b border-[#262626] px-3 py-1.5">
+          <div className="flex flex-wrap items-center gap-3 border-b border-[#262626] px-2 py-1">
             {[
               { l: "Comp Source", v: compSource, set: setCompSource, opts: ["Analyst Curated (BI)", "Company Reported"], id: "comp-source" },
               { l: "Growth", v: growthType, set: setGrowthType, opts: ["Year-over-Year", "Quarter-over-Quarter"], id: "growth-type" },
@@ -1060,14 +1082,14 @@ export function MarketView({ onBack }) {
           <table className="w-full min-w-[900px] text-left font-mono text-[10px]">
             <thead>
               <tr className="border-b border-[#262626] text-[#999]">
-                <th className="px-3 py-1.5 font-semibold">Week Ending</th>
+                <th className="px-2 py-1 font-semibold">Week Ending</th>
                 {SALES_WEEKS.map((w) => <th key={w} className="px-2 py-1.5 text-center font-semibold">{w}</th>)}
               </tr>
             </thead>
             <tbody>
               {SALES_ROWS.map((row, ri) => (
                 <tr key={row} className="border-b border-[#1c1c1c]">
-                  <td className={`whitespace-nowrap px-3 py-1 ${ri === 0 ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{row}</td>
+                  <td className={`whitespace-nowrap px-2 py-0.5 ${ri === 0 ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{row}</td>
                   {SALES_WEEKS.map((w) => {
                     const g = (mixHash(`sales-${row}-${w}-${growthPeriod}-${compSource}`) % 300 - 140) / 10;
                     return (
@@ -1098,7 +1120,7 @@ export function MarketView({ onBack }) {
           ) : (
             <div className="divide-y divide-[#1c1c1c]">
               {history.map((h, i) => (
-                <div key={`${h.time}-${i}`} data-testid={`signal-history-row-${i}`} className="flex items-center justify-between gap-3 px-3 py-1.5 font-mono text-[10px]">
+                <div key={`${h.time}-${i}`} data-testid={`signal-history-row-${i}`} className="flex items-center justify-between gap-3 px-2 py-1 font-mono text-[10px]">
                   <span className="text-[#777]">{h.time}</span>
                   <span className="font-bold text-[#e5e5e5]">{h.name}</span>
                   <span className={`rounded px-2 py-0.5 font-bold ${h.buy ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>{h.dir}</span>
@@ -1119,6 +1141,7 @@ export function MarketView({ onBack }) {
         onToggleIndicator={toggleIndicator}
         onRefresh={() => setTick((t) => t + 1)}
         onClose={() => setSignalFor(null)}
+        onExecuteTrade={handleExecuteDemoTrade}
       />
       <StockDetailDrawer
         stock={detailStock}

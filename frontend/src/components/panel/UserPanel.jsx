@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -263,6 +263,7 @@ const PanelHome = ({ stepsDone, completeStep, live, onModule }) => (
 
 export default function UserPanel({ module, onModule, onWebsite }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [username, setUsername] = useState(null);
   const [stepsDone, setStepsDone] = useState(2);
   const live = stepsDone === 4;
   const crumb = MENU.find((m) => m.view === module)?.label || "Dashboard";
@@ -272,6 +273,15 @@ export default function UserPanel({ module, onModule, onWebsite }) {
     toast.success(`${STEP_LABELS[stepsDone]} completed`, { description: "Demo only — nothing was submitted." });
     setStepsDone((s) => s + 1);
   };
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem("username");
+      if (u) setUsername(u);
+    } catch (e) {
+      // ignore (fallback for environments without localStorage)
+    }
+  }, []);
 
   return (
     <div data-testid="user-panel">
@@ -318,6 +328,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
             >
               <Menu className="h-5 w-5" />
             </button>
+            <span className="hidden sm:inline ml-2 mr-2 text-sm font-semibold text-ink">{username ? `Hello, ${username}` : "Hello, Demo User"}</span>
             <nav className="flex items-center gap-1.5 text-sm text-slate">
               <Home className="h-3.5 w-3.5 text-signal" />
               <ChevronRight className="h-3.5 w-3.5" />
@@ -332,10 +343,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
             <span className="inline-flex items-center gap-1.5 rounded-full bg-signal px-3.5 py-1.5 font-mono text-xs font-bold text-white" data-testid="panel-enabled-badge">
               <Activity className="h-3.5 w-3.5" /> Enabled
             </span>
-            <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-mono text-xs font-bold text-white ring-2 ring-edge">DU</span>
-              <span className="hidden text-sm font-semibold text-ink sm:block">Demo User</span>
-            </div>
+            {/* Avatar button removed; greeting is shown on the top-left */}
           </div>
         </div>
 

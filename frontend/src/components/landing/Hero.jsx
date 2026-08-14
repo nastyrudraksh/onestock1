@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { ArrowRight, ShieldCheck, Lock, LineChart, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 import DashboardMockup from "./DashboardMockup";
 import { scrollToSection } from "@/lib/scroll";
 
@@ -36,6 +38,7 @@ const FloatingPill = ({ className, children, delay = 0, duration = 4 }) => (
 );
 
 export default function Hero({ onCta }) {
+  const [nameInput, setNameInput] = useState("");
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [5, -5]), { stiffness: 120, damping: 18 });
@@ -112,6 +115,31 @@ export default function Hero({ onCta }) {
               Explore Services
             </button>
           </motion.div>
+
+          <div className="mt-4 flex items-center gap-2">
+            <input
+              aria-label="Enter display name"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              placeholder="Enter name"
+              className="rounded-xl border border-edge bg-paper px-3 py-2 text-sm outline-none"
+            />
+            <button
+              onClick={() => {
+                const trimmed = nameInput.trim();
+                if (!trimmed) {
+                  toast.error("Please enter a name");
+                  return;
+                }
+                try { localStorage.setItem("username", trimmed); } catch (e) {}
+                toast.success(`Saved name: ${trimmed}`, { description: "Name saved locally." });
+                setNameInput("");
+              }}
+              className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
+            >
+              Save Name
+            </button>
+          </div>
 
           <motion.div
             initial={{ opacity: 0 }}

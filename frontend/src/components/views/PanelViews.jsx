@@ -460,7 +460,7 @@ export const buildSignal = (m, tick = 0, enabled = [true, true, true, true, true
   };
 };
 
-export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, onToggleIndicator, onRefresh, onClose }) {
+export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, onToggleIndicator, onRefresh, onClose, onExecuteTrade }) {
   const sig = instrument ? buildSignal(instrument, tick, enabled) : null;
 
   return (
@@ -569,8 +569,17 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
                 data-testid="signal-execute-button"
                 onClick={() => {
                   const fn = sig.buy ? toast.success : toast.error;
+                  const trade = {
+                    symbol: instrument.name,
+                    action: sig.buy ? "BUY" : "SELL",
+                    type: sig.dir,
+                    quantity: 25,
+                    price: Number(instrument.px.replace(/,/g, "")),
+                    time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
+                  };
+                  onExecuteTrade?.(trade);
                   fn(`${sig.dir} ${instrument.name} placed`, {
-                    description: "Demo only — no real order was placed.",
+                    description: `Demo order: ${trade.action} ${trade.quantity} lots @ ₹${trade.price.toLocaleString("en-IN")}`,
                     style: sig.buy
                       ? { background: "#00D084", color: "#06281C", border: "1px solid #00B573" }
                       : { background: "#F43F5E", color: "#FFFFFF", border: "1px solid #E11D48" },
@@ -735,41 +744,41 @@ export function NiftyStocksBoard({ stocks, selectedIndex = "NIFTY 50", compact =
       <div
         key={s.name}
         data-testid={`stock-${slug(s.name)}`}
-        className={`flex items-center justify-between rounded-md px-2 py-1 ${gain ? "bg-signal/5" : "bg-rose-500/5"}`}
+        className={`flex items-center justify-between rounded-sm px-1 py-0.5 ${gain ? "bg-signal/5" : "bg-rose-500/5"}`}
       >
-        <span className="font-mono text-[10px] font-bold text-ink">{s.name}</span>
-        <span className={`font-mono text-[9px] font-semibold ${gain ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
+        <span className="font-mono text-[8px] font-bold text-ink">{s.name}</span>
+        <span className={`font-mono text-[7px] font-semibold ${gain ? "text-signal" : "text-rose-500"}`}>{s.chg}</span>
       </div>
     );
   };
 
   if (compact) {
     return (
-      <div className="rounded-2xl border border-edge bg-white p-4" data-testid="nifty-stocks-board">
-        <div className="flex items-center justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Nifty 50 Stocks</p>
+      <div className="rounded-sm border border-edge bg-white p-1" data-testid="nifty-stocks-board">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-mono text-[7px] uppercase tracking-[0.18em] text-slate">Nifty 50 Stocks</p>
           {onToggle && <MinBtn id="min-stocks" collapsed={collapsed} onClick={onToggle} />}
         </div>
-        <div className="mt-2.5 flex items-center justify-between font-mono text-[11px] font-bold">
+        <div className="mt-1 flex items-center justify-between font-mono text-[7px] font-bold">
           <span className="text-signal" data-testid="advances-count">Advance {up.length}</span>
           <span className="text-rose-500" data-testid="declines-count">Decline {down.length}</span>
         </div>
-        <div className="mt-2 flex h-2 overflow-hidden rounded-full" data-testid="advance-decline-bar">
+        <div className="mt-0.5 flex h-1.5 overflow-hidden rounded-full" data-testid="advance-decline-bar">
           <div className="bg-signal transition-all duration-700" style={{ width: `${(up.length / effectiveStocks.length) * 100}%` }} />
           <div className="bg-rose-500 transition-all duration-700" style={{ width: `${(down.length / effectiveStocks.length) * 100}%` }} />
         </div>
         <Collapse open={!collapsed}>
-          <div className="mt-3 max-h-[520px] overflow-y-auto pr-1" data-lenis-prevent>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="mt-1 max-h-[240px] overflow-y-auto pr-1" data-lenis-prevent>
+            <div className="grid grid-cols-2 gap-1">
               <div>
-                <p className="mb-1.5 border-b border-signal/20 pb-1 font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-signal">
-                  Advance · Bullish
+                <p className="mb-1 border-b border-signal/20 pb-0.5 font-mono text-[7px] font-bold uppercase tracking-[0.18em] text-signal">
+                  Advance
                 </p>
                 <div className="space-y-1">{up.map(stockRow)}</div>
               </div>
               <div>
-                <p className="mb-1.5 border-b border-rose-500/20 pb-1 font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-rose-500">
-                  Decline · Bearish
+                <p className="mb-1 border-b border-rose-500/20 pb-0.5 font-mono text-[7px] font-bold uppercase tracking-[0.18em] text-rose-500">
+                  Decline
                 </p>
                 <div className="space-y-1">{down.map(stockRow)}</div>
               </div>
@@ -781,30 +790,30 @@ export function NiftyStocksBoard({ stocks, selectedIndex = "NIFTY 50", compact =
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-edge bg-white p-6" data-testid="nifty-stocks-board">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Nifty 50 Stocks · Advance / Decline</p>
-        <div className="flex items-center gap-3 font-mono text-[11px] font-bold">
+    <div className="rounded-xl border border-edge bg-white p-3" data-testid="nifty-stocks-board">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate">Nifty 50 Stocks · Advance / Decline</p>
+        <div className="flex items-center gap-2 font-mono text-[9px] font-bold">
           <span className="text-signal" data-testid="advances-count">Advance {up.length}</span>
           <span className="text-rose-500" data-testid="declines-count">Decline {down.length}</span>
         </div>
       </div>
-      <div className="mt-3 flex h-2.5 overflow-hidden rounded-full" data-testid="advance-decline-bar">
+      <div className="mt-2 flex h-2.5 overflow-hidden rounded-full" data-testid="advance-decline-bar">
       <div className="bg-signal transition-all duration-700" style={{ width: `${(up.length / effectiveStocks.length) * 100}%` }} />
       <div className="bg-rose-500 transition-all duration-700" style={{ width: `${(down.length / effectiveStocks.length) * 100}%` }} />
       </div>
-      <div className="mt-5 grid grid-cols-2 gap-5">
+      <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
-          <p className="mb-2.5 border-b border-signal/20 pb-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-signal">
+          <p className="mb-1.5 border-b border-signal/20 pb-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-signal">
             Advance · Bullish ({up.length})
           </p>
-          <div className="space-y-1.5">{up.map(stockRow)}</div>
+          <div className="space-y-1">{up.map(stockRow)}</div>
         </div>
         <div>
-          <p className="mb-2.5 border-b border-rose-500/20 pb-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-rose-500">
+          <p className="mb-1.5 border-b border-rose-500/20 pb-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-rose-500">
             Decline · Bearish ({down.length})
           </p>
-          <div className="space-y-1.5">{down.map(stockRow)}</div>
+          <div className="space-y-1">{down.map(stockRow)}</div>
         </div>
       </div>
     </div>
@@ -881,27 +890,28 @@ export function OiChart() {
     const support = 30 + (hashOf(m.name) % 41);
     return { name: m.name, support, resistance: 100 - support };
   });
+  const chartHeight = Math.min(300, Math.max(180, data.length * 14));
   return (
-    <div className="rounded-2xl border border-edge bg-white p-6" data-testid="oi-chart">
+    <div className="rounded-xl border border-edge bg-white p-3" data-testid="oi-chart">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">OI · Support vs Resistance</p>
-        <div className="flex items-center gap-3 font-mono text-[10px] font-bold">
-          <span className="inline-flex items-center gap-1.5 text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Support %</span>
-          <span className="inline-flex items-center gap-1.5 text-rose-500"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Resistance %</span>
+        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate">OI · Support vs Resistance</p>
+        <div className="flex items-center gap-2 font-mono text-[9px] font-bold">
+          <span className="inline-flex items-center gap-1 text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Support %</span>
+          <span className="inline-flex items-center gap-1 text-rose-500"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Resistance %</span>
         </div>
       </div>
-      <div className="mt-4" style={{ height: data.length * 32 }}>
+      <div className="mt-3 min-w-0 overflow-hidden" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }} barCategoryGap="28%">
+          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 4, bottom: 0, left: 0 }} barCategoryGap="22%">
             <XAxis type="number" domain={[0, 100]} hide />
             <YAxis
-              type="category" dataKey="name" width={118}
-              tick={{ fontSize: 9, fontFamily: "'JetBrains Mono', monospace", fill: "#6B7280", fontWeight: 600 }}
+              type="category" dataKey="name" width={82}
+              tick={{ fontSize: 8, fontFamily: "'JetBrains Mono', monospace", fill: "#6B7280", fontWeight: 600 }}
               axisLine={false} tickLine={false}
             />
             <Tooltip
               cursor={{ fill: "rgba(10,15,28,0.04)" }}
-              contentStyle={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, borderRadius: 10, border: "1px solid #E5E7EB" }}
+              contentStyle={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, borderRadius: 8, border: "1px solid #E5E7EB" }}
               formatter={(v, k) => [`${v}%`, k === "support" ? "Support" : "Resistance"]}
             />
             <Bar dataKey="support" stackId="oi" fill="#00D084" isAnimationActive radius={[4, 0, 0, 4]} />
@@ -909,8 +919,8 @@ export function OiChart() {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-slate">
-        Demo data — percent of traders positioned at support (green) versus resistance (red) for each market.
+      <p className="mt-2 text-[10px] leading-relaxed text-slate">
+        Demo data — support versus resistance by market.
       </p>
     </div>
   );
@@ -929,8 +939,9 @@ export const mixHash = (s) => {
 };
 
 const OI_COL_TOGGLES = [
-  { key: "callOi", label: "Call OI" },
+  { key: "market", label: "Market" },
   { key: "putOi", label: "Put OI" },
+  { key: "callOi", label: "Call OI" },
   { key: "callChg", label: "Call OI Chg" },
   { key: "putChg", label: "Put OI Chg" },
   { key: "strike", label: "Strike" },
@@ -939,7 +950,7 @@ const OI_COL_TOGGLES = [
 
 export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle }) {
   const [tab, setTab] = useState("total");
-  const [cols, setCols] = useState({ callOi: true, putOi: true, callChg: true, putChg: true, strike: true, iv: true });
+  const [cols, setCols] = useState({ market: true, callOi: true, putOi: true, callChg: true, putChg: true, strike: true, iv: true });
 
   const rows = OI_STRIKES.map((strike) => {
     const h = mixHash(`oi-${strike}-${tick}`);
@@ -963,36 +974,37 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
   const show = (k) => {
     if (!cols[k]) return false;
     if (tab === "total") return true;
-    const callCols = ["callOi", "callChg", "strike", "iv"];
-    const putCols = ["putOi", "putChg", "strike", "iv"];
-    return (tab === "call" ? callCols : putCols).includes(k);
+    const marketCols = ["market"];
+    const callCols = ["market", "callOi", "callChg", "strike", "iv"];
+    const putCols = ["market", "putOi", "putChg", "strike", "iv"];
+    return (tab === "call" ? callCols : putCols).includes(k) || marketCols.includes(k);
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-night-line bg-ink" data-testid="oi-chain">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-night-line px-4 py-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-cloud">OI · Option Chain — Nifty 50</p>
+    <div className="overflow-hidden rounded-xl border border-edge bg-white min-h-[420px] max-h-[450px] h-[420px] flex flex-col" data-testid="oi-chain">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-2 py-2">
+        <p className="font-mono text-[13px] uppercase tracking-[0.06em] text-slate">OI · Option Chain — Nifty 50</p>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[9px] font-bold text-rose-400"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Call OI</span>
-          <span className="inline-flex items-center gap-1.5 font-mono text-[9px] font-bold text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Put OI</span>
+          <span className="inline-flex items-center gap-1 font-mono text-[8px] font-bold text-rose-500"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Call OI</span>
+          <span className="inline-flex items-center gap-1 font-mono text-[8px] font-bold text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Put OI</span>
           {onToggle && <MinBtn id="min-oi" collapsed={collapsed} onClick={onToggle} dark />}
         </div>
       </div>
       <Collapse open={!collapsed}>
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
-              <div className="font-mono text-[11px] text-cloud">Total Call OI</div>
-              <div className="font-mono text-[14px] font-bold text-paper">{totalCall}L</div>
+        <div className="h-full flex flex-col px-2 py-2">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="font-mono text-[11px] text-slate">Total Call OI</div>
+              <div className="font-mono text-[13px] font-bold text-ink">{totalCall}L</div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="font-mono text-[11px] text-cloud">Total Put OI</div>
-              <div className="font-mono text-[14px] font-bold text-paper">{totalPut}L</div>
+            <div className="flex items-center gap-2">
+              <div className="font-mono text-[11px] text-slate">Total Put OI</div>
+              <div className="font-mono text-[13px] font-bold text-ink">{totalPut}L</div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="font-mono text-[11px] text-cloud">Put − Call Diff</div>
+            <div className="flex items-center gap-2">
+              <div className="font-mono text-[11px] text-slate">Put − Call Diff</div>
               <div
-                className={`font-mono text-[14px] font-bold ${Number(totalPut) - Number(totalCall) >= 0 ? "text-signal" : "text-rose-400"}`}
+                className={`font-mono text-[13px] font-bold ${Number(totalPut) - Number(totalCall) >= 0 ? "text-signal" : "text-rose-500"}`}
                 data-testid="oi-diff"
               >
                 {Number(totalPut) - Number(totalCall) >= 0 ? "+" : ""}
@@ -1000,48 +1012,48 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
               </div>
             </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-night-line px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-1 border-b border-edge px-0 py-1">
           {[{ k: "call", label: "Call OI" }, { k: "put", label: "Put OI" }, { k: "total", label: "Total OI" }].map((t) => (
             <button
               key={t.k}
               data-testid={`oi-tab-${t.k}`}
               onClick={() => setTab(t.k)}
-              className={`rounded-full px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                tab === t.k ? "bg-ember text-white" : "bg-white/5 text-cloud hover:bg-white/10"
+              className={`rounded-full px-2.5 py-1 font-mono text-[8px] font-bold uppercase tracking-wider transition-colors ${
+                tab === t.k ? "bg-signal text-white" : "bg-mist text-slate hover:bg-mist/80"
               }`}
             >
               {t.label}
             </button>
           ))}
-          <span className="mx-1 hidden h-4 w-px bg-night-line sm:block" />
+          <span className="mx-1 hidden h-4 w-px bg-edge sm:block" />
           {OI_COL_TOGGLES.map((c) => (
             <button
               key={c.key}
               data-testid={`oi-col-${c.key}`}
               onClick={() => setCols((s) => ({ ...s, [c.key]: !s[c.key] }))}
-              className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold transition-colors ${
-                cols[c.key] ? "border-signal/40 bg-signal/10 text-signal" : "border-night-line text-cloud/60 hover:text-cloud"
+              className={`rounded-full border px-2 py-1 font-mono text-[8px] font-bold transition-colors ${
+                cols[c.key] ? "border-signal/40 bg-signal/10 text-signal" : "border-edge text-slate hover:text-ink"
               }`}
             >
               {c.label}
             </button>
           ))}
         </div>
-        <div className="overflow-x-auto" data-lenis-prevent>
-          <table className="w-full text-left font-mono text-[10px] [&_td]:border-r [&_td]:border-[#222] [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-[#222] [&_th:last-child]:border-r-0">
+          <div className="overflow-auto flex-1" data-lenis-prevent>
+            <table className="min-w-[700px] w-full table-fixed text-left font-mono text-[12px] [&_td]:border-r [&_td]:border-edge [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-edge [&_th:last-child]:border-r-0">
             <thead>
-              <tr className="border-b border-night-line text-cloud/70">
-                {show("callChg") && <th className="px-2 py-2 font-semibold">Call Chg%</th>}
-                {show("callOi") && <th className="px-2 py-2 text-right font-semibold">Call OI</th>}
-                {show("callOi") && <th className="px-2 py-2 text-right font-semibold">Call High</th>}
-                {show("callOi") && <th className="px-2 py-2 text-right font-semibold">Call Δ</th>}
-                {show("strike") && <th className="px-2 py-2 text-center font-semibold text-paper">Strike</th>}
-                {show("iv") && <th className="px-2 py-2 font-semibold">IV</th>}
-                {show("putOi") && <th className="px-2 py-2 font-semibold">Put OI</th>}
-                {show("putOi") && <th className="px-2 py-2 font-semibold">Put High</th>}
-                {show("putOi") && <th className="px-2 py-2 text-right font-semibold">Put Δ</th>}
-                {show("putChg") && <th className="px-2 py-2 text-right font-semibold">Put Chg%</th>}
+              <tr className="border-b border-edge text-slate">
+                {show("market") && <th className="px-2 py-1 text-left font-semibold">Market</th>}
+                {show("putChg") && <th className="px-2 py-1 text-right font-semibold">Put Chg%</th>}
+                {show("putOi") && <th className="px-2 py-1 text-right font-semibold">Put OI</th>}
+                {show("putOi") && <th className="px-2 py-1 text-right font-semibold">Put High</th>}
+                {show("putOi") && <th className="px-2 py-1 text-right font-semibold">Put Δ</th>}
+                {show("strike") && <th className="px-2 py-1 text-center font-semibold text-ink">Strike</th>}
+                {show("iv") && <th className="px-2 py-1 font-semibold">IV</th>}
+                {show("callOi") && <th className="px-2 py-1 text-right font-semibold">Call OI</th>}
+                {show("callOi") && <th className="px-2 py-1 text-right font-semibold">Call High</th>}
+                {show("callOi") && <th className="px-2 py-1 text-right font-semibold">Call Δ</th>}
+                {show("callChg") && <th className="px-2 py-1 text-right font-semibold">Call Chg%</th>}
               </tr>
             </thead>
             <tbody>
@@ -1052,35 +1064,37 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle })
                     key={r.strike}
                     data-testid={`oi-row-${r.strike}`}
                     onClick={() => onStrike?.(r.strike)}
-                    className={`cursor-pointer border-b border-night-line/60 transition-colors hover:bg-white/10 ${atm ? "bg-ember/10" : ""}`}
+                    className={`cursor-pointer border-b border-edge/80 transition-colors hover:bg-mist ${atm ? "bg-signal/5" : ""}`}
                   >
-                    {show("callChg") && <td className={`px-2 py-1 font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.callChg}%</td>}
-                    {show("callOi") && (
-                      <>
-                        <td className="px-2 py-1 text-right font-bold text-white">{r.callOi}</td>
-                        <td className="px-2 py-1 text-right text-cloud">{maxCallOi.toFixed(1)}</td>
-                        <td className={`px-2 py-1 text-right font-bold ${maxCallOi - r.callOi === 0 ? "text-ember" : "text-slate"}`}>{(maxCallOi - r.callOi).toFixed(1)}</td>
-                      </>
-                    )}
-                    {show("strike") && <td className={`px-2 py-1 text-center font-bold ${atm ? "text-ember" : "text-paper"}`}>{r.strike}</td>}
-                    {show("iv") && <td className="px-2 py-1 text-cloud">{r.iv}</td>}
+                    {show("market") && <td className="px-2 py-1 text-left font-bold text-ink">NIFTY 50</td>}
+                    {show("putChg") && <td className={`px-2 py-1 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-500"}`}>{r.putChg}%</td>}
                     {show("putOi") && (
                       <>
-                        <td className="px-2 py-1 text-right font-bold text-white">{r.putOi}</td>
-                        <td className="px-2 py-1 text-right text-cloud">{maxPutOi.toFixed(1)}</td>
+                        <td className="px-2 py-1 text-right font-bold text-ink">{r.putOi}</td>
+                        <td className="px-2 py-1 text-right text-slate">{maxPutOi.toFixed(1)}</td>
                         <td className={`px-2 py-1 text-right font-bold ${maxPutOi - r.putOi === 0 ? "text-ember" : "text-slate"}`}>{(maxPutOi - r.putOi).toFixed(1)}</td>
                       </>
                     )}
-                    {show("putChg") && <td className={`px-2 py-1 text-right font-bold ${r.putChg >= 0 ? "text-signal" : "text-rose-400"}`}>{r.putChg}%</td>}
+                    {show("strike") && <td className={`px-2 py-1 text-center font-bold ${atm ? "text-ember" : "text-ink"}`}>{r.strike}</td>}
+                    {show("iv") && <td className="px-2 py-1 text-slate">{r.iv}</td>}
+                    {show("callOi") && (
+                      <>
+                        <td className="px-2 py-1 text-right font-bold text-ink">{r.callOi}</td>
+                        <td className="px-2 py-1 text-right text-slate">{maxCallOi.toFixed(1)}</td>
+                        <td className={`px-2 py-1 text-right font-bold ${maxCallOi - r.callOi === 0 ? "text-ember" : "text-slate"}`}>{(maxCallOi - r.callOi).toFixed(1)}</td>
+                      </>
+                    )}
+                    {show("callChg") && <td className={`px-2 py-1 text-right font-bold ${r.callChg >= 0 ? "text-signal" : "text-rose-500"}`}>{r.callChg}%</td>}
                   </tr>
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
+          <p className="border-t border-edge px-3 py-2 text-[12px] text-slate">
+            Demo option chain — click any strike to open its signal note. Randomly generated test data.
+          </p>
         </div>
-        <p className="border-t border-night-line px-4 py-2.5 text-[10px] text-cloud/60">
-          Demo option chain — click any strike to open its signal note. Randomly generated test data.
-        </p>
       </Collapse>
     </div>
   );
@@ -1186,10 +1200,10 @@ export const INDICES = {
 export const INDEX_NAMES = Object.keys(INDICES);
 
 export const TermPanel = ({ title, id, collapsed, onToggle, right, children }) => (
-  <section className="overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid={id}>
-    <header className="flex items-center justify-between gap-2 border-b border-[#262626] bg-[#0d0d0d] px-2.5 py-1">
-      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">{title}</span>
-      <span className="flex items-center gap-2">
+  <section className="overflow-hidden rounded-sm border border-[#262626] bg-[#080808]" data-testid={id}>
+    <header className="flex items-center justify-between gap-1.5 border-b border-[#262626] bg-[#0d0d0d] px-1.5 py-0.5">
+      <span className="font-mono text-[7px] font-bold uppercase tracking-[0.18em] text-amber-400">{title}</span>
+      <span className="flex items-center gap-1">
         {right}
         {onToggle && <MinBtn id={`min-${id}`} collapsed={collapsed} onClick={onToggle} dark />}
       </span>
@@ -1212,16 +1226,16 @@ const StockRow = ({ s, onClick }) => {
       onClick={() => onClick(s)}
       className="cursor-pointer border-b border-[#1c1c1c] transition-colors hover:bg-white/[0.05]"
     >
-      <td className="whitespace-nowrap px-2 py-1 font-bold text-white">{s.sym}</td>
-      <td className="hidden whitespace-nowrap px-2 py-1 text-[#888] lg:table-cell">{s.name}</td>
-      <td className="whitespace-nowrap px-2 py-1 text-right text-[#e5e5e5]">{Number(s.ltp).toLocaleString("en-IN")}</td>
-      <td className={`whitespace-nowrap px-2 py-1 text-right font-semibold ${flat ? "text-[#888]" : up ? "text-green-400" : "text-red-400"}`}>
+      <td className="whitespace-nowrap px-1.5 py-0.5 font-bold text-white">{s.sym}</td>
+      <td className="hidden whitespace-nowrap px-1.5 py-0.5 text-[#888] lg:table-cell">{s.name}</td>
+      <td className="whitespace-nowrap px-1.5 py-0.5 text-right text-[#e5e5e5]">{Number(s.ltp).toLocaleString("en-IN")}</td>
+      <td className={`whitespace-nowrap px-1.5 py-0.5 text-right font-semibold ${flat ? "text-[#888]" : up ? "text-green-400" : "text-red-400"}`}>
         {flat ? "0.00" : `${up ? "+" : ""}${chgAbs}`}
       </td>
-      <td className={`whitespace-nowrap px-2 py-1 text-right font-bold ${flat ? "text-[#888]" : up ? "text-green-400" : "text-red-400"}`}>
+      <td className={`whitespace-nowrap px-1.5 py-0.5 text-right font-bold ${flat ? "text-[#888]" : up ? "text-green-400" : "text-red-400"}`}>
         {flat ? "0.00%" : `${up ? "+" : ""}${s.chgPct.toFixed(2)}%`}
       </td>
-      <td className="hidden whitespace-nowrap px-2 py-1 text-right text-[#888] xl:table-cell">{s.volume}M</td>
+      <td className="hidden whitespace-nowrap px-1.5 py-0.5 text-right text-[#888] xl:table-cell">{s.volume}M</td>
     </tr>
   );
 };
@@ -1233,7 +1247,7 @@ const ConstituentBoard = ({ indexName, stocks, onSelectStock, collapsed, onToggl
 
   const GroupTable = ({ label, list, tone }) => (
     <div className="min-w-0">
-      <p className={`mb-1 border-b px-2 pb-1 font-mono text-[9px] font-bold uppercase tracking-[0.18em] ${tone === "up" ? "border-green-900 text-green-400" : tone === "down" ? "border-red-900 text-red-400" : "border-[#333] text-[#888]"}`}>
+      <p className={`mb-1 border-b px-2 pb-1 font-mono text-[8px] font-bold uppercase tracking-[0.18em] ${tone === "up" ? "border-green-900 text-green-400" : tone === "down" ? "border-red-900 text-red-400" : "border-[#333] text-[#888]"}`}>
         {label} {list.length}
       </p>
       <table className="w-full font-mono text-[10px]">
