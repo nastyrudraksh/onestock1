@@ -48,6 +48,20 @@ const useLiveCandles = (indexName, chartRange, live, tick) => {
   return pts;
 };
 
+const useLiveInstruments = (live, tick) => {
+  const [quotes, setQuotes] = useState(null);
+  useEffect(() => {
+    if (!live) return;
+    let dead = false;
+    fetch(`${API}/api/market/instruments`)
+      .then((r) => r.json())
+      .then((j) => { if (!dead && j.live) setQuotes(j.quotes); })
+      .catch(() => {});
+    return () => { dead = true; };
+  }, [live, tick]);
+  return quotes;
+};
+
 const SECTORS = {
   BANKING: ["HDFCBANK", "ICICIBANK", "SBIN", "AXISBANK", "KOTAKBANK", "INDUSINDBK"],
   IT: ["TCS", "INFY", "HCLTECH", "WIPRO", "TECHM"],
@@ -101,14 +115,14 @@ const stockDetail = (s) => {
   const h = mixHash(`detail-${s.sym}`);
   const ltp = Number(s.ltp);
   return {
-    open: (ltp / (1 + s.chgPct / 100)).toFixed(2),
-    high: (ltp * 1.012).toFixed(2),
-    low: (ltp * 0.989).toFixed(2),
+    open: (s.open || ltp / (1 + s.chgPct / 100)).toFixed(2),
+    high: (s.high || ltp * 1.012).toFixed(2),
+    low: (s.low || ltp * 0.989).toFixed(2),
     prevClose: (ltp / (1 + s.chgPct / 100)).toFixed(2),
     value: `${(ltp * Number(s.volume) / 100).toFixed(1)} Cr`,
     mcap: `${(8 + (h % 1800) / 10).toFixed(1)}L Cr`,
-    hi52: (ltp * (1.1 + (h % 20) / 100)).toFixed(2),
-    lo52: (ltp * (0.62 + (h % 15) / 100)).toFixed(2),
+    hi52: (s.high52 || ltp * (1.1 + (h % 20) / 100)).toFixed(2),
+    lo52: (s.low52 || ltp * (0.62 + (h % 15) / 100)).toFixed(2),
     pe: (8 + (h % 380) / 10).toFixed(1),
     eps: (ltp / (8 + (h % 380) / 10)).toFixed(2),
     divY: ((h % 32) / 10).toFixed(2),
@@ -305,6 +319,7 @@ export function MarketView({ onBack }) {
 
   const liveMkt = useLiveMarket(indexName, live, tick);
   const liveCandles = useLiveCandles(indexName, chartRange, live, tick);
+  const liveInst = useLiveInstruments(live, tick);
 
   const PANEL_KEYS = ["breadth", "board", "movers", "sectors", "volmov", "chart", "idxperf", "oiintel", "oi", "oiactivity", "fiidii", "sentiment", "inst", "news", "fund", "alt", "sales"];
   const togglePanel = (k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
@@ -323,7 +338,7 @@ export function MarketView({ onBack }) {
 
   useEffect(() => {
     if (tick === 0) return;
-    const strong = INSTRUMENTS.map((m) => ({ m, sig: buildSignal(m, tick, enabled) }))
+    const strong = instView.map((m) => ({ m, sig: buildSignal(m, tick, enabled) }))
       .filter((x) => x.sig.confidence >= 90).slice(0, 2);
     if (strong.length > 0) playAlertBeep();
     strong.forEach(({ m, sig }) => {
@@ -350,11 +365,15 @@ export function MarketView({ onBack }) {
   const handleExecuteDemoTrade = useCallback((trade) => {
     const entry = {
       ...trade,
-      id: `${trade.symbol}-${trade.time}-${trade.action}`,
+      id: `${trade.symbol}-${trade.time}-${trade.action}-${Math.random().toString(36).slice(2,8)}`,
       side: trade.action,
       note: `${trade.action} ${trade.quantity} lots`,
     };
-    setDemoTrades((prev) => [entry, ...prev].slice(0, 8));
+    setDemoTrades((prev) => {
+      const next = [entry, ...prev].slice(0, 8);
+      try { localStorage.setItem("demo_trades", JSON.stringify(next)); window.dispatchEvent(new CustomEvent("trades:updated", { detail: { trades: next } })); } catch (e) {}
+      return next;
+    });
     setHistory((prev) => [{
       name: trade.symbol,
       dir: trade.type,
@@ -366,13 +385,18 @@ export function MarketView({ onBack }) {
 
   const updateDemoTradeQuantity = useCallback((id, nextQty) => {
     const quantity = Math.max(1, Number(nextQty) || 1);
-    setDemoTrades((prev) => prev.map((trade) => trade.id === id ? { ...trade, quantity, note: `${trade.side} ${quantity} lots` } : trade));
+    setDemoTrades((prev) => {
+      const next = prev.map((trade) => trade.id === id ? { ...trade, quantity, contracts: (trade.lotSize || 1) * quantity, note: `${trade.side} ${quantity} lots` } : trade);
+      try { localStorage.setItem("demo_trades", JSON.stringify(next)); window.dispatchEvent(new CustomEvent("trades:updated", { detail: { trades: next } })); } catch (e) {}
+      return next;
+    });
   }, []);
 
   const stocks = liveMkt?.stocks?.length >= Math.ceil(index.stocks.length * 0.6)
     ? liveMkt.stocks.map((s) => ({ ...s, name: index.stocks.find((m) => m.sym === s.sym)?.name || s.sym }))
     : index.stocks;
   const effIndex = liveMkt?.index || index;
+  const instView = INSTRUMENTS.map((m) => (liveInst?.[m.name] ? { ...m, ...liveInst[m.name], live: true } : m));
   const derived = useMemo(() => {
     const advances = stocks.filter((s) => s.chgPct > 0);
     const declines = stocks.filter((s) => s.chgPct < 0);
@@ -395,8 +419,12 @@ export function MarketView({ onBack }) {
       gainers: byChg.slice(0, gainerCount),
       losers: byChg.slice(-gainerCount).reverse(),
       volLeaders: byVol.slice(0, 8).map((s) => withRel.find((x) => x.sym === s.sym)),
-      hi52: byChg.filter((s) => s.chgPct > 2).slice(0, 5),
-      lo52: byChg.filter((s) => s.chgPct < -2).slice(-5),
+      hi52: stocks.some((s) => s.high52)
+        ? stocks.filter((s) => s.high52 && Number(s.ltp) >= 0.98 * s.high52).sort((a, b) => Number(b.ltp) / b.high52 - Number(a.ltp) / a.high52).slice(0, 5)
+        : byChg.filter((s) => s.chgPct > 2).slice(0, 5),
+      lo52: stocks.some((s) => s.low52)
+        ? stocks.filter((s) => s.low52 && Number(s.ltp) <= 1.02 * s.low52).sort((a, b) => Number(a.ltp) / a.low52 - Number(b.ltp) / b.low52).slice(0, 5)
+        : byChg.filter((s) => s.chgPct < -2).slice(-5),
       unusual: withRel.filter((s) => s.relVol >= 1.8).slice(0, 5),
       active: byVol.slice(0, 5),
       sectors: Object.entries(SECTORS).map(([sec, syms]) => {
@@ -409,8 +437,8 @@ export function MarketView({ onBack }) {
       maxPut: oi.reduce((a, r) => (r.putOi > a.putOi ? r : a), oi[0]),
       breadth: {
         adRatio: (advances.length / Math.max(1, declines.length)).toFixed(2),
-        hi52n: advances.filter((s) => s.chgPct > 2).length,
-        lo52n: declines.filter((s) => s.chgPct < -2).length,
+        hi52n: stocks.some((s) => s.high52) ? stocks.filter((s) => s.high52 && Number(s.ltp) >= 0.98 * s.high52).length : advances.filter((s) => s.chgPct > 2).length,
+        lo52n: stocks.some((s) => s.low52) ? stocks.filter((s) => s.low52 && Number(s.ltp) <= 1.02 * s.low52).length : declines.filter((s) => s.chgPct < -2).length,
         upVolPct: ((upVol / totVol) * 100).toFixed(1),
         downVolPct: ((1 - upVol / totVol) * 100).toFixed(1),
       },
@@ -424,10 +452,14 @@ export function MarketView({ onBack }) {
   const fx = (v, dec = 2) =>
     currency === "USD" ? `$${(v / 84).toLocaleString("en-US", { maximumFractionDigits: dec })}` : `₹${v.toLocaleString("en-IN", { maximumFractionDigits: dec })}`;
   const up = chgNum >= 0;
+  const idxOhlc = liveMkt?.index;
+  const ohlcNum = (k) => (idxOhlc?.[k] ? parseFloat(idxOhlc[k].replace(/,/g, "")) : null);
   const hdrStats = [
-    { l: "Volume", v: `${volH}M` }, { l: "Bid", v: fx(px * 0.9998) }, { l: "Ask", v: fx(px * 1.0002) },
-    { l: "Open", v: fx(px / (1 + chgNum / 100)) }, { l: "High", v: fx(px * 1.008) }, { l: "Low", v: fx(px * 0.991) },
-    { l: "Value", v: `${fx(px * parseFloat(volH) * 10, 0)} Cr` },
+    { l: "Volume", v: liveMkt?.totalVolume ? `${liveMkt.totalVolume}M` : `${volH}M` }, { l: "Bid", v: fx(px * 0.9998) }, { l: "Ask", v: fx(px * 1.0002) },
+    { l: "Open", v: ohlcNum("open") ? fx(ohlcNum("open")) : fx(px / (1 + chgNum / 100)) },
+    { l: "High", v: ohlcNum("high") ? fx(ohlcNum("high")) : fx(px * 1.008) },
+    { l: "Low", v: ohlcNum("low") ? fx(ohlcNum("low")) : fx(px * 0.991) },
+    { l: "Value", v: liveMkt?.totalValue ? `₹${liveMkt.totalValue} Cr` : `${fx(px * parseFloat(volH) * 10, 0)} Cr` },
   ];
   const funds = buildFundamentals();
   const altRows = buildAltRows();
@@ -954,7 +986,7 @@ export function MarketView({ onBack }) {
             </header>
             <Collapse open={!collapsed.inst}>
               <div className="grid max-h-[420px] grid-cols-1 gap-1 overflow-y-auto p-1 sm:grid-cols-2" data-lenis-prevent>
-                {INSTRUMENTS.map((m) => {
+                {instView.map((m) => {
                   const sig = buildSignal(m, tick, enabled);
                   return (
                     <div key={m.name} role="button" tabIndex={0} data-testid={`market-instrument-${slug(m.name)}`}
@@ -968,7 +1000,10 @@ export function MarketView({ onBack }) {
                           <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-[#080808] animate-pulse-dot ${sig.buy ? "bg-green-400" : "bg-red-400"}`} />
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-[11px] font-bold uppercase tracking-wide text-[#c9c9c9]">{m.name}</span>
+                          <span className="block truncate text-[11px] font-bold uppercase tracking-wide text-[#c9c9c9]">
+                            {m.name}
+                            {liveInst && !m.live && <span className="ml-1 rounded bg-amber-400/15 px-1 align-middle text-[7px] font-bold text-amber-500" data-testid={`sim-badge-${slug(m.name)}`}>SIM</span>}
+                          </span>
                           <span className="block font-mono text-[11px]">
                             <span className="font-semibold text-white">₹{m.px}</span>{" "}
                             <span className={`font-semibold ${m.chg.startsWith("+") ? "text-green-400" : "text-red-400"}`}>{m.chg}</span>
@@ -1181,7 +1216,7 @@ export function MarketView({ onBack }) {
                       onChange={(e) => updateDemoTradeQuantity(trade.id, e.target.value)}
                       className="w-14 rounded border border-[#333] bg-[#0d0d0d] px-1.5 py-1 text-center font-mono text-[10px] text-[#e5e5e5] outline-none focus:border-amber-400"
                     />
-                    <span className="text-[#999]">lots</span>
+                    <span className="text-[#999]">lots · <span className="font-bold">{(trade.contracts || (trade.lotSize || 1) * trade.quantity).toLocaleString()}</span> contracts</span>
                   </div>
                 </div>
               ))}

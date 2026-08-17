@@ -605,11 +605,15 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
                 data-testid="signal-execute-button"
                 onClick={() => {
                   const fn = sig.buy ? toast.success : toast.error;
+                  // infer lot size (demo heuristic): options/futures use 75, equities use 1
+                  const lotSize = /OPTION|FUTURE/i.test(instrument.name) ? 75 : 1;
                   const trade = {
                     symbol: instrument.name,
                     action: sig.buy ? "BUY" : "SELL",
                     type: sig.dir,
                     quantity,
+                    lotSize,
+                    contracts: quantity * lotSize,
                     price: Number(instrument.px.replace(/,/g, "")),
                     time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
                   };
@@ -645,7 +649,7 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
 }
 
 const PLANS = [
-  { name: "MONTHLY PLAN", price: "₹999", per: "/month", cta: "Start Free", popular: false,
+  { name: "MONTHLY PLAN", price: "₹989", per: "/month", cta: "Start Free", popular: false,
     features: ["Basic analytics", "Portfolio monitoring", "Market insights", "Email support"] },
   { name: "QUARTERLY", price: "₹2,499", per: "/quarter", cta: "Get Started", popular: true,
     features: ["Advanced analytics", "Automated strategies", "Broker connectivity", "Risk management", "Priority support"] },

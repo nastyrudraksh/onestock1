@@ -22,7 +22,7 @@ logger = logging.getLogger("market_data")
 
 IST = ZoneInfo("Asia/Kolkata")
 MASTER_URL = "https://margincalculator.angelone.in/OpenAPI_File/files/OpenAPIScripMaster.json"
-MASTER_V = 2  # bump to invalidate cached master when parsing changes
+MASTER_V = 3  # bump to invalidate cached master when parsing changes
 
 # ---- constituent lists (mirror of frontend INDICES) ----
 NIFTY50 = ["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","TATAMOTORS","ITC","LT","AXISBANK","KOTAKBANK","HINDUNILVR","BAJFINANCE","MARUTI","SUNPHARMA","TITAN","ULTRACEMCO","NTPC","POWERGRID","ONGC","TATASTEEL","JSWSTEEL","ADANIENT","HCLTECH","BHARTIARTL","ASIANPAINT","DMART","WIPRO","TECHM","HINDZINC","COALINDIA","BPCL","IOC","HEROMOTOCO","EICHERMOT","BAJAJ-AUTO","TVSMOTOR","CIPLA","DRREDDY","DIVISLAB","APOLLOHOSP","BRITANNIA","NESTLEIND","TATACONSUM","HAVELLS","PIDILITIND","VEDL","HINDALCO","GRASIM","INDUSINDBK"]
@@ -32,19 +32,47 @@ INDEX_CONFIG = {
     "NIFTY 50":        {"master": "nifty50",        "exch": "NSE", "fallback": "99926000", "stocks": NIFTY50},
     "SENSEX":          {"master": "sensex",         "exch": "BSE", "fallback": "99919000", "stocks": SENSEX},
     "BANK NIFTY":      {"master": "niftybank",      "exch": "NSE", "fallback": "99926009", "stocks": ["HDFCBANK","ICICIBANK","SBIN","AXISBANK","KOTAKBANK","INDUSINDBK","BAJFINANCE"]},
-    "NIFTY NEXT 50":   {"master": "niftynext50",    "exch": "NSE", "fallback": None, "stocks": ["DLF","LODHA","HINDZINC","VEDL","HAVELLS","PIDILITIND","DMART","DIVISLAB","TVSMOTOR","TATACONSUM"]},
-    "NIFTY MIDCAP 100": {"master": "niftymidcap100", "exch": "NSE", "fallback": None, "stocks": ["HINDZINC","COALINDIA","HAVELLS","PIDILITIND","DLF","LODHA","TVSMOTOR","DIVISLAB"]},
-    "NIFTY IT":        {"master": "niftyit",        "exch": "NSE", "fallback": None, "stocks": ["TCS","INFY","HCLTECH","WIPRO","TECHM"]},
-    "NIFTY AUTO":      {"master": "niftyauto",      "exch": "NSE", "fallback": None, "stocks": ["TATAMOTORS","MARUTI","HEROMOTOCO","EICHERMOT","BAJAJ-AUTO","TVSMOTOR"]},
-    "NIFTY PHARMA":    {"master": "niftypharma",    "exch": "NSE", "fallback": None, "stocks": ["SUNPHARMA","CIPLA","DRREDDY","DIVISLAB","APOLLOHOSP"]},
-    "NIFTY FMCG":      {"master": "niftyfmcg",      "exch": "NSE", "fallback": None, "stocks": ["ITC","HINDUNILVR","BRITANNIA","NESTLEIND","TATACONSUM","DMART"]},
-    "NIFTY METAL":     {"master": "niftymetal",     "exch": "NSE", "fallback": None, "stocks": ["TATASTEEL","JSWSTEEL","HINDALCO","HINDZINC","VEDL","COALINDIA"]},
-    "NIFTY REALTY":    {"master": "niftyrealty",    "exch": "NSE", "fallback": None, "stocks": ["DLF","LODHA"]},
-    "NIFTY ENERGY":    {"master": "niftyenergy",    "exch": "NSE", "fallback": None, "stocks": ["RELIANCE","ONGC","BPCL","IOC","NTPC","POWERGRID","COALINDIA"]},
+    "NIFTY NEXT 50":   {"master": "niftynext50",    "exch": "NSE", "fallback": "99926013", "stocks": ["DLF","LODHA","HINDZINC","VEDL","HAVELLS","PIDILITIND","DMART","DIVISLAB","TVSMOTOR","TATACONSUM"]},
+    "NIFTY MIDCAP 100": {"master": "niftymidcap100", "exch": "NSE", "fallback": "99926011", "stocks": ["HINDZINC","COALINDIA","HAVELLS","PIDILITIND","DLF","LODHA","TVSMOTOR","DIVISLAB"]},
+    "NIFTY IT":        {"master": "niftyit",        "exch": "NSE", "fallback": "99926008", "stocks": ["TCS","INFY","HCLTECH","WIPRO","TECHM"]},
+    "NIFTY AUTO":      {"master": "niftyauto",      "exch": "NSE", "fallback": "99926029", "stocks": ["TATAMOTORS","MARUTI","HEROMOTOCO","EICHERMOT","BAJAJ-AUTO","TVSMOTOR"]},
+    "NIFTY PHARMA":    {"master": "niftypharma",    "exch": "NSE", "fallback": "99926023", "stocks": ["SUNPHARMA","CIPLA","DRREDDY","DIVISLAB","APOLLOHOSP"]},
+    "NIFTY FMCG":      {"master": "niftyfmcg",      "exch": "NSE", "fallback": "99926021", "stocks": ["ITC","HINDUNILVR","BRITANNIA","NESTLEIND","TATACONSUM","DMART"]},
+    "NIFTY METAL":     {"master": "niftymetal",     "exch": "NSE", "fallback": "99926030", "stocks": ["TATASTEEL","JSWSTEEL","HINDALCO","HINDZINC","VEDL","COALINDIA"]},
+    "NIFTY REALTY":    {"master": "niftyrealty",    "exch": "NSE", "fallback": "99926018", "stocks": ["DLF","LODHA"]},
+    "NIFTY ENERGY":    {"master": "niftyenergy",    "exch": "NSE", "fallback": "99926020", "stocks": ["RELIANCE","ONGC","BPCL","IOC","NTPC","POWERGRID","COALINDIA"]},
 }
+
+# extra index underlyings used only by the instruments (signals) panel
+EXTRA_INDICES = {
+    "FINNIFTY":   {"master": "niftyfinservice", "exch": "NSE", "fallback": "99926037"},
+    "MIDCPNIFTY": {"master": "niftymidselect",  "exch": "NSE", "fallback": "99926074"},
+}
+
+# renamed tickers -> current NSE symbol (corporate actions)
+SYMBOL_ALIAS = {"TATAMOTORS": "TMPV"}
 
 ALL_SYMS = sorted({s for cfg in INDEX_CONFIG.values() for s in cfg["stocks"]})
 NIFTY_LOT_FALLBACK = 75
+
+
+# signals panel display name -> source: index quote / NFO index future / MCX commodity future
+INSTRUMENT_SOURCES = {
+    "NIFTY 50 OPTION": ("index", "NIFTY 50"),
+    "NIFTY 50 FUTURE": ("fut", "NIFTY"),
+    "BANK NIFTY OPTION": ("index", "BANK NIFTY"),
+    "BANK NIFTY FUTURE": ("fut", "BANKNIFTY"),
+    "SENSEX": ("index", "SENSEX"),
+    "SENSEX FUTURE": ("index", "SENSEX"),
+    "FINNIFTY OPTION": ("index", "FINNIFTY"),
+    "FINNIFTY FUTURE": ("fut", "FINNIFTY"),
+    "MIDCAP": ("index", "MIDCPNIFTY"),
+    "MIDCAP FUTURE": ("fut", "MIDCPNIFTY"),
+    "SILVER OPTION": ("mcx", "SILVER"),
+    "SILVER FUTURE": ("mcx", "SILVER"),
+    "GOLD OPTION": ("mcx", "GOLD"),
+    "GOLD FUTURE": ("mcx", "GOLD"),
+}
 
 
 def _norm(s):
@@ -70,24 +98,51 @@ class SmartMarket:
         self.totp_secret = os.environ.get("SMARTAPI_TOTP_SECRET")
         self.smart = None
         self.login_error = None
+        self.session_ok = False
+        self.session_reason = "not_configured"
         self.master_loaded = False
         self.master_error = None
+        self.last_login_attempt = None
         self.equity = {}        # SYM -> {token, tsym}
         self.index_tokens = {}  # index name -> {token, exch}
         self.options = []       # NFO NIFTY contracts, nearest expiry
         self.opt_expiry = None
+        self.futures = {}       # (name, exch) -> nearest-expiry FUT contract doc
         self.lock = threading.Lock()
         self._cache = {}
 
     # ---------------- auth ----------------
+    def _reason_from_error(self, exc):
+        msg = str(exc or "").lower()
+        if not self.api_key or not self.client_id or not self.mpin or not self.totp_secret:
+            return "credentials_missing"
+        if "session" in msg or "token" in msg or "expired" in msg or "login" in msg:
+            return "session_expired"
+        if "auth" in msg or "credential" in msg or "unauthorized" in msg:
+            return "auth_failed"
+        return "api_error"
+
     def login(self):
+        if not all([self.api_key, self.client_id, self.mpin, self.totp_secret]):
+            self.session_ok = False
+            self.session_reason = "credentials_missing"
+            self.login_error = "SmartAPI credentials are incomplete"
+            raise RuntimeError(self.login_error)
+
         smart = SmartConnect(api_key=self.api_key)
         totp = pyotp.TOTP(self.totp_secret).now()
         res = smart.generateSession(self.client_id, self.mpin, totp)
         if not res or not res.get("status"):
-            raise RuntimeError(str(res.get("message") if isinstance(res, dict) else res)[:200])
+            msg = str(res.get("message") if isinstance(res, dict) else res)[:200]
+            self.session_ok = False
+            self.session_reason = self._reason_from_error(msg)
+            self.login_error = msg or "SmartAPI session generation failed"
+            raise RuntimeError(self.login_error)
         self.smart = smart
+        self.session_ok = True
+        self.session_reason = "ok"
         self.login_error = None
+        self.last_login_attempt = datetime.now(IST)
         logger.info("SmartAPI login OK for client %s", self.client_id)
 
     def _call(self, fn, *args):
@@ -98,8 +153,12 @@ class SmartMarket:
             logger.warning("SmartAPI call failed (%s); re-login and retry once", type(exc).__name__)
             try:
                 self.login()
-            except Exception:
-                pass
+            except Exception as relogin_exc:
+                self.session_ok = False
+                self.session_reason = self._reason_from_error(relogin_exc)
+                self.login_error = str(relogin_exc)[:200]
+                logger.warning("SmartAPI re-login failed: %s", self.login_error)
+                raise
             return fn(*args)
 
     def bootstrap(self):
@@ -139,15 +198,25 @@ class SmartMarket:
         seg = r.get("exch_seg")
         itype = r.get("instrumenttype", "")
         sym = r.get("symbol", "")
-        if seg == "NSE" and itype == "" and sym.endswith("-EQ") and sym[:-3] in ALL_SYMS:
+        today = datetime.now(IST).date().isoformat()
+        if seg == "NSE" and itype == "" and sym.endswith("-EQ") and (sym[:-3] in ALL_SYMS or sym[:-3] in SYMBOL_ALIAS.values()):
             return True
         if seg == "NFO" and r.get("name") == "NIFTY" and itype == "OPTIDX":
             exp = _parse_expiry(r.get("expiry", ""))
-            if exp and exp >= datetime.now(IST).date().isoformat():
+            if exp and exp >= today:
                 return True
-        if seg in ("NSE", "BSE") and itype == "":
+        if seg == "NFO" and itype == "FUTIDX" and r.get("name") in ("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY"):
+            exp = _parse_expiry(r.get("expiry", ""))
+            if exp and exp >= today:
+                return True
+        if seg == "MCX" and itype == "FUTCOM" and r.get("name") in ("GOLD", "SILVER", "CRUDEOIL"):
+            exp = _parse_expiry(r.get("expiry", ""))
+            if exp and exp >= today:
+                return True
+        if itype == "AMXIDX" and seg in ("NSE", "BSE"):
             n = _norm(sym)
-            return any(cfg["master"] == n for cfg in INDEX_CONFIG.values())
+            names = [cfg["master"] for cfg in INDEX_CONFIG.values()] + [c["master"] for c in EXTRA_INDICES.values()]
+            return n in names
         return False
 
     def _slim(self, r):
@@ -159,18 +228,191 @@ class SmartMarket:
         }
 
     def _ingest(self, docs):
-        self.equity = {d["symbol"][:-3]: {"token": d["token"], "tsym": d["symbol"]}
-                       for d in docs if d["exch"] == "NSE" and d["itype"] == "" and d["symbol"].endswith("-EQ")}
-        for name, cfg in INDEX_CONFIG.items():
-            row = next((d for d in docs if d["itype"] == "" and _norm(d["symbol"]) == cfg["master"]), None)
+        # Build robust symbol mapping: match normalized master names to our expected ALL_SYMS
+        def match_sym_from_doc_symbol(sym):
+            base = sym[:-3] if sym.endswith("-EQ") else sym
+            cand = _norm(base)
+            # direct exact match
+            for s in ALL_SYMS:
+                if _norm(s) == cand:
+                    return s
+            # starts/contains heuristics
+            for s in ALL_SYMS:
+                ns = _norm(s)
+                if cand.startswith(ns) or ns.startswith(cand) or ns in cand or cand in ns:
+                    return s
+            return base
+
+        self.equity = {}
+        for d in docs:
+            try:
+                if d.get("exch") == "NSE" and d.get("itype") == "" and d.get("symbol", "").endswith("-EQ"):
+                    mapped = match_sym_from_doc_symbol(d["symbol"])
+                    self.equity[mapped] = {"token": d["token"], "tsym": d["symbol"]}
+            except Exception:
+                continue
+        idx_cfg = dict(INDEX_CONFIG)
+        idx_cfg.update(EXTRA_INDICES)
+        for name, cfg in idx_cfg.items():
+            # index rows carry instrumenttype AMXIDX; fall back to hardcoded token
+            row = next((d for d in docs if d.get("itype") == "AMXIDX" and (_norm(d.get("symbol")) == cfg["master"] or _norm(d.get("name")) == cfg["master"])), None)
             token = row["token"] if row else cfg["fallback"]
             if token:
                 self.index_tokens[name] = {"token": token, "exch": cfg["exch"]}
-        opts = [d for d in docs if d["exch"] == "NFO"]
+        opts = [d for d in docs if d["exch"] == "NFO" and d.get("itype") == "OPTIDX"]
         if opts:
             self.opt_expiry = min(d["expiry"] for d in opts if d["expiry"])
             self.options = [d for d in opts if d["expiry"] == self.opt_expiry]
+        for d in docs:
+            if d.get("itype") in ("FUTIDX", "FUTCOM") and d.get("expiry"):
+                key = (d["name"], d["exch"])
+                if key not in self.futures or d["expiry"] < self.futures[key]["expiry"]:
+                    self.futures[key] = d
         self.master_loaded = True
+
+    # ---------------- streaming (polling-backed) ----------------
+    def start_streaming(self):
+        """Background poller that keeps the latest market ticks in memory.
+        This is a pragmatic substitute for direct websocket streaming: polls SmartAPI every 4s and caches by token.
+        """
+        if hasattr(self, "_stream_thread") and getattr(self, "_stream_thread"):
+            return
+        self._stream_cache = {}  # token -> last quote dict
+        self._stream_thread = threading.Thread(target=self._stream_loop, daemon=True)
+        self._stream_thread.start()
+
+    # ---------------- websocket (SDK-backed) ----------------
+    def _ws_message_handler(self, msg):
+        """Common handler for websocket messages from SmartAPI SDK.
+        Expected to receive dict-like payloads; normalize and store by token.
+        """
+        try:
+            if not msg:
+                return
+            # SDK may deliver JSON strings or dicts
+            data = msg if isinstance(msg, dict) else (json.loads(msg) if isinstance(msg, str) else None)
+            if not data:
+                return
+            # SmartAPI websocket messages commonly contain a 'data' or 'fetched' field
+            payloads = None
+            if isinstance(data, dict) and data.get("data"):
+                dd = data.get("data")
+                if isinstance(dd, dict) and dd.get("fetched"):
+                    payloads = dd.get("fetched")
+                elif isinstance(dd, list):
+                    payloads = dd
+            elif isinstance(data, dict) and data.get("fetched"):
+                payloads = data.get("fetched")
+            if not payloads:
+                # maybe data itself is a quote dict
+                payloads = [data]
+            for q in payloads:
+                tok = str(q.get("symbolToken") or q.get("token") or q.get("symbolTokenString"))
+                if not tok:
+                    continue
+                with self.lock:
+                    self._stream_cache[str(tok)] = q
+        except Exception as exc:
+            logger.debug("ws msg handler error: %s", exc)
+
+    def start_websocket(self):
+        """Attempt to start SmartAPI SDK websocket; if SDK doesn't expose websocket helpers, raise.
+        This method is best-effort: it will log and raise if not available, leaving poller as fallback.
+        """
+        if getattr(self, "_ws_thread", None):
+            return
+        if not self._ready():
+            raise RuntimeError("SmartAPI not ready for websocket")
+        # Try common SDK entry points for websocket support
+        try:
+            # prefer SDK's start_websocket or startWebSocket if present
+            if hasattr(self.smart, "start_websocket"):
+                # some SDKs expect a callback
+                try:
+                    self.smart.start_websocket(self._ws_message_handler)
+                    logger.info("SmartAPI SDK start_websocket invoked")
+                    self._ws_thread = True
+                    return
+                except TypeError:
+                    # try without args
+                    self.smart.start_websocket()
+                    logger.info("SmartAPI SDK start_websocket invoked without callback")
+                    self._ws_thread = True
+                    return
+            if hasattr(self.smart, "startStream"):
+                # experimental
+                self.smart.startStream(self._ws_message_handler)
+                logger.info("SmartAPI SDK startStream invoked")
+                self._ws_thread = True
+                return
+            # fallback: check for websocket URL provider
+            if hasattr(self.smart, "get_websocket_url"):
+                url = self.smart.get_websocket_url()
+                # attempt to open a websocket using websocket-client if available
+                try:
+                    import websocket
+                    def _run_ws():
+                        def _on_message(ws, m):
+                            self._ws_message_handler(m)
+                        def _on_error(ws, e):
+                            logger.warning("websocket error: %s", e)
+                        def _on_close(ws):
+                            logger.info("websocket closed")
+                        ws = websocket.WebSocketApp(url, on_message=_on_message, on_error=_on_error, on_close=_on_close)
+                        ws.run_forever()
+                    self._ws_thread = threading.Thread(target=_run_ws, daemon=True)
+                    self._ws_thread.start()
+                    logger.info("Started websocket-client to %s", url)
+                    return
+                except Exception:
+                    logger.warning("websocket-client not available or failed to connect")
+            raise RuntimeError("No websocket support available in SDK")
+        except Exception as exc:
+            logger.warning("start_websocket failed: %s", exc)
+            raise
+
+    def _stream_loop(self):
+        logger.info("Starting market poller thread")
+        while True:
+            try:
+                if not self._ready():
+                    time.sleep(3)
+                    continue
+                # gather tokens to poll: index tokens + equity tokens + option tokens
+                by_exch = {}
+                # index tokens
+                for name, t in self.index_tokens.items():
+                    by_exch.setdefault(t["exch"], set()).add(str(t["token"]))
+                # equity tokens
+                for sym, info in self.equity.items():
+                    by_exch.setdefault("NSE", set()).add(str(info["token"]))
+                # options (NFO)
+                if self.options:
+                    for o in self.options:
+                        by_exch.setdefault("NFO", set()).add(str(o["token"]))
+                # convert sets to lists
+                for k in list(by_exch.keys()):
+                    by_exch[k] = list(by_exch[k])
+                if not by_exch:
+                    time.sleep(4)
+                    continue
+                fetched = self._call(self.smart.getMarketData, "FULL", by_exch)
+                if fetched and isinstance(fetched, dict) and fetched.get("status"):
+                    data = fetched.get("data", {}).get("fetched", [])
+                else:
+                    data = ((fetched or {}).get("data") or {}).get("fetched", []) if isinstance(fetched, dict) else fetched or []
+                # normalize data to list of quote dicts
+                for q in data:
+                    try:
+                        tok = str(q.get("symbolToken") or q.get("symbolTokenString") or q.get("token"))
+                        if tok:
+                            with self.lock:
+                                self._stream_cache[tok] = q
+                    except Exception:
+                        continue
+            except Exception as exc:
+                logger.exception("Stream loop error: %s", exc)
+            time.sleep(4)
 
     # ---------------- helpers ----------------
     def _cached(self, key, ttl, builder):
@@ -190,6 +432,24 @@ class SmartMarket:
         return bool(self.smart) and self.master_loaded
 
     def _market_data(self, exchange_tokens):
+        # If we have a streaming cache populated by the poller, use it to build a response
+        try:
+            if hasattr(self, "_stream_cache") and self._stream_cache:
+                out = []
+                # exchange_tokens is a dict like {"NSE": [token,...], "NFO": [...]}
+                for exch, toks in (exchange_tokens or {}).items():
+                    for t in toks:
+                        tok = str(t)
+                        q = None
+                        with self.lock:
+                            q = self._stream_cache.get(tok)
+                        if q:
+                            out.append(q)
+                if out:
+                    return out
+        except Exception:
+            pass
+        # fallback to direct API call
         res = self._call(self.smart.getMarketData, "FULL", exchange_tokens)
         if not res or not res.get("status"):
             raise RuntimeError("getMarketData returned no data")
@@ -211,19 +471,26 @@ class SmartMarket:
                 ltp = float(q.get("ltp") or 0)
                 close = float(q.get("close") or ltp or 1)
                 chg = (ltp - close) / close * 100 if close else 0
-                out[name] = {"px": f"{ltp:,.2f}", "chg": f"{chg:+.2f}%"}
+                out[name] = {"px": f"{ltp:,.2f}", "chg": f"{chg:+.2f}%",
+                             "open": f"{float(q.get('open') or 0):,.2f}",
+                             "high": f"{float(q.get('high') or 0):,.2f}",
+                             "low": f"{float(q.get('low') or 0):,.2f}"}
             return out
         return self._cached("index_quotes", 20, build)
 
     def stock_quotes(self, syms):
-        tokens = [self.equity[s]["token"] for s in syms if s in self.equity]
-        if not tokens:
-            return []
+        resolved = {s: SYMBOL_ALIAS.get(s, s) for s in syms}
+        resolved = {orig: eff for orig, eff in resolved.items() if eff in self.equity}
+        if not resolved:
+            return {"rows": [], "volM": 0.0, "turnoverCr": 0.0}
+        tokens = [self.equity[eff]["token"] for eff in resolved.values()]
         fetched = []
         for i in range(0, len(tokens), 40):
             fetched.extend(self._market_data({"NSE": tokens[i:i + 40]}))
-        token2sym = {self.equity[s]["token"]: s for s in syms if s in self.equity}
+        token2sym = {self.equity[eff]["token"]: orig for orig, eff in resolved.items()}
         rows = []
+        vol_sum = 0.0
+        turn_sum = 0.0
         for q in fetched:
             sym = token2sym.get(str(q.get("symbolToken")))
             if not sym:
@@ -232,9 +499,14 @@ class SmartMarket:
             close = float(q.get("close") or ltp or 1)
             chg = (ltp - close) / close * 100 if close else 0
             vol = float(q.get("tradeVolume") or q.get("totalTradedVolume") or 0)
+            vol_sum += vol
+            turn_sum += ltp * vol
             rows.append({"sym": sym, "ltp": f"{ltp:.2f}", "chgPct": round(chg, 2),
-                         "volume": f"{vol / 1e6:.1f}"})
-        return rows
+                         "volume": f"{vol / 1e6:.1f}",
+                         "open": float(q.get("open") or 0), "high": float(q.get("high") or 0),
+                         "low": float(q.get("low") or 0),
+                         "high52": float(q.get("52WeekHigh") or 0), "low52": float(q.get("52WeekLow") or 0)})
+        return {"rows": rows, "volM": vol_sum / 1e6, "turnoverCr": turn_sum / 1e7}
 
     def snapshot(self, index_name):
         cfg = INDEX_CONFIG.get(index_name)
@@ -242,13 +514,15 @@ class SmartMarket:
             return {"live": False}
         def build():
             quotes = self.index_quotes()
-            stocks = self.stock_quotes(cfg["stocks"])
+            agg = self.stock_quotes(cfg["stocks"])
             payload = {"live": True, "ts": datetime.now(IST).isoformat(),
                        "marketOpen": self._market_open(), "indices": quotes}
             if index_name in quotes:
                 payload["index"] = quotes[index_name]
-            if stocks:
-                payload["stocks"] = stocks
+            if agg["rows"]:
+                payload["stocks"] = agg["rows"]
+                payload["totalVolume"] = round(agg["volM"], 1)
+                payload["totalValue"] = f"{agg['turnoverCr']:,.0f}"
             chain = self.option_chain_safe()
             if chain:
                 payload["oiChain"] = chain
@@ -331,10 +605,57 @@ class SmartMarket:
             return {"live": bool(pts), "points": pts}
         return self._cached(f"candles-{index_name}-{rng}", 60, build)
 
+    def instruments(self):
+        """Real quotes for the signals panel instrument list (index/option rows use the
+        underlying index or nearest future; MCX rows skipped gracefully if segment disabled)."""
+        if not self._ready():
+            return {"live": False}
+        def build():
+            reqs = {}
+            token_names = {}
+            for name, (kind, ref) in INSTRUMENT_SOURCES.items():
+                if kind == "index":
+                    t = self.index_tokens.get(ref)
+                else:
+                    exch = "NFO" if kind == "fut" else "MCX"
+                    d = self.futures.get((ref, exch))
+                    t = {"token": d["token"], "exch": d["exch"]} if d else None
+                if not t:
+                    continue
+                reqs.setdefault(t["exch"], []).append(t["token"])
+                token_names.setdefault(t["token"], []).append(name)
+            if not reqs:
+                return {"live": False}
+            fetched = []
+            mcx_tokens = reqs.pop("MCX", None)
+            if reqs:
+                fetched.extend(self._market_data(reqs))
+            if mcx_tokens:
+                try:
+                    fetched.extend(self._market_data({"MCX": mcx_tokens}))
+                except Exception:
+                    logger.info("MCX quotes unavailable (commodity segment not enabled?)")
+            out = {}
+            for q in fetched:
+                names = token_names.get(str(q.get("symbolToken")))
+                if not names:
+                    continue
+                ltp = float(q.get("ltp") or 0)
+                close = float(q.get("close") or ltp or 1)
+                chg = (ltp - close) / close * 100 if close else 0
+                for n in names:
+                    out[n] = {"px": f"{ltp:,.2f}", "chg": f"{chg:+.2f}%"}
+            return {"live": bool(out), "quotes": out}
+        return self._cached("instruments", 5, build)
+
     def status(self):
+        configured = bool(self.api_key and self.client_id and self.mpin and self.totp_secret)
+        live = bool(self.smart and self.master_loaded and self.session_ok)
         return {
-            "configured": bool(self.api_key and self.client_id and self.mpin and self.totp_secret),
+            "configured": configured,
             "connected": bool(self.smart),
+            "live": live,
+            "reason": self.session_reason if not live else "ok",
             "loginError": self.login_error,
             "masterLoaded": self.master_loaded,
             "masterError": self.master_error,
@@ -354,6 +675,35 @@ def init_market():
     global market
     market = SmartMarket()
     threading.Thread(target=market.bootstrap, daemon=True).start()
+    # start a helper thread which will activate the streaming poller once master is loaded
+    def _kick_stream():
+        # wait until bootstrap completes master load or login attempt
+        for _ in range(0, 60):
+            try:
+                if market and getattr(market, "master_loaded", False) and getattr(market, "smart", None):
+                    # try websocket first, then fallback to poller
+                    try:
+                        market.start_websocket()
+                        logger.info("Started websocket via SDK")
+                        return
+                    except Exception:
+                        try:
+                            market.start_streaming()
+                            logger.info("Websocket not available; started poller fallback")
+                        except Exception:
+                            logger.exception("Failed to start poller fallback")
+                        return
+            except Exception:
+                pass
+            time.sleep(1)
+        # fallback: try to start streaming anyway
+        try:
+            if market:
+                market.start_streaming()
+        except Exception:
+            pass
+
+    threading.Thread(target=_kick_stream, daemon=True).start()
     return market
 
 
@@ -379,6 +729,17 @@ def market_option_chain():
         return {"live": False}
     chain = market.option_chain_safe()
     return {"live": bool(chain), **({"chain": chain} if chain else {})}
+
+
+@router.get("/instruments")
+def market_instruments():
+    if not market:
+        return {"live": False}
+    try:
+        return market.instruments()
+    except Exception as exc:
+        logger.warning("instruments failed: %s", type(exc).__name__)
+        return {"live": False}
 
 
 @router.get("/candles")

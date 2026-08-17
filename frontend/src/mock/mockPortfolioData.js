@@ -1,12 +1,12 @@
 export const portfolioOverview = {
-  totalValue: 1253480.75,
-  invested: 985000.25,
-  cash: 268480.5,
-  todayPnl: 15240.5,
-  overallPnl: 268480.5,
+  totalValue: 12534.75,
+  invested: 98500.25,
+  cash: 26080.5,
+  todayPnl: 1520.5,
+  overallPnl: 2680.5,
   overallPnlPercent: 27.28,
-  marginUsed: 125000,
-  availableMargin: 143480.5,
+  marginUsed: 12500,
+  availableMargin: 14480.5,
 };
 
 // mock series for chart ranges; small arrays of numbers

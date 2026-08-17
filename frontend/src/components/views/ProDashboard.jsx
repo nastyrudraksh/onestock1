@@ -3,7 +3,9 @@ import { toast } from 'sonner';
 import { portfolioOverview, pnlSeries } from '@/mock/mockPortfolioData';
 import { holdings as mockHoldings } from '@/mock/mockHoldings';
 import { trades as mockTrades } from '@/mock/mockTrades';
-import { indices, topGainers, topLosers } from '@/mock/mockMarketData';
+// replace mock market subscription with backend SmartAPI snapshot
+const API = process.env.REACT_APP_BACKEND_URL || '';
+import { indices as initialIndices, topGainers as initialGainers, topLosers as initialLosers } from '@/mock/mockMarketData';
 import { defaultWatchlist as initialWatch } from '@/mock/mockWatchlist';
 import { alerts as initialAlerts } from '@/mock/mockAlerts';
 
@@ -42,11 +44,48 @@ export default function ProDashboard({ onModule, onBack }) {
     } catch (e) { return initialWatch; }
   });
   const [alerts, setAlerts] = useState(() => initialAlerts.slice());
+  const [indices, setIndices] = useState(() => initialIndices.slice());
+  const [topGainers, setTopGainers] = useState(() => initialGainers.slice());
+  const [topLosers, setTopLosers] = useState(() => initialLosers.slice());
+  const [isLive, setIsLive] = useState(false);
+  const [marketStocks, setMarketStocks] = useState([]);
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState('symbol');
   const [sortDir, setSortDir] = useState('asc');
 
   useEffect(() => { localStorage.setItem('demo-watchlist', JSON.stringify(watchlist)); }, [watchlist]);
+
+  useEffect(() => {
+    let dead = false;
+    const fetchSnapshot = async () => {
+      try {
+        const res = await fetch(`${API}/api/market/snapshot?index=NIFTY%2050`);
+        const j = await res.json();
+        if (dead) return;
+        if (j && j.live) {
+          // indices is an object { name: {px, chg}, ... }
+          setIsLive(true);
+          const idxs = j.indices ? Object.keys(j.indices).map(k => ({ id: k, value: Number(String(j.indices[k].px).replace(/,/g, '')) , change: parseFloat(String(j.indices[k].chg).replace('%','')||0), changePct: parseFloat(String(j.indices[k].chg).replace('%','')||0) })) : [];
+          setIndices(idxs);
+          // stocks array: {sym, ltp, chgPct, volume}
+          const stocks = Array.isArray(j.stocks) ? j.stocks.map(s => ({ symbol: s.sym, ltp: Number(s.ltp), changePct: Number(s.chgPct), name: s.name || s.sym })) : [];
+          setMarketStocks(stocks);
+          const sortedG = [...stocks].sort((a,b)=> b.changePct - a.changePct).slice(0,10).map(s=>({ symbol: s.symbol, changePct: s.changePct }));
+          const sortedL = [...stocks].sort((a,b)=> a.changePct - b.changePct).slice(0,10).map(s=>({ symbol: s.symbol, changePct: s.changePct }));
+          setTopGainers(sortedG);
+          setTopLosers(sortedL);
+        } else {
+          // when not live, keep existing demo values
+          setIsLive(false);
+        }
+      } catch (e) {
+        // ignore and keep demo
+      }
+    };
+    fetchSnapshot();
+    const id = setInterval(fetchSnapshot, 4000);
+    return () => { dead = true; clearInterval(id); };
+  }, []);
 
   const holdings = useMemo(() => {
     return mockHoldings.map(h => {
@@ -135,7 +174,16 @@ export default function ProDashboard({ onModule, onBack }) {
         </div>
 
         <div className="rounded-xl border border-edge bg-white p-4">
-          <p className="font-display text-sm font-bold">Market Snapshot</p>
+          <div className="flex items-center justify-between">
+            <p className="font-display text-sm font-bold">Market Snapshot</p>
+            <div className="text-xs">
+              {isLive ? (
+                <span className="rounded-full bg-signal/10 px-2 py-1 text-signal">Live</span>
+              ) : (
+                <span className="rounded-full bg-mist px-2 py-1 text-slate">Demo</span>
+              )}
+            </div>
+          </div>
           <div className="mt-3 space-y-2">
             {indices.map((idx)=> (
               <button key={idx.id} onClick={()=>onModule('market')} className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-mist">
@@ -210,7 +258,7 @@ export default function ProDashboard({ onModule, onBack }) {
               <div key={sym} className="flex items-center justify-between rounded-md px-2 py-1 hover:bg-mist">
                 <div className="flex items-center gap-2">
                   <div className="font-mono font-bold">{sym}</div>
-                  <div className="text-xs text-slate">₹{(Math.random()*3000+100).toFixed(2)}</div>
+                  <div className="text-xs text-slate">₹{(marketStocks.find(ms=>ms.symbol===sym)?.ltp ? marketStocks.find(ms=>ms.symbol===sym).ltp.toFixed(2) : (Math.random()*3000+100).toFixed(2))}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={()=>onModule('market')} className="text-xs px-2 py-1">Open</button>
