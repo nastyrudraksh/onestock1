@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getUsers, addUser, findUser, findOrCreateGoogleUser } from "@/mock/mockUsers";
+import { getUsers, addUser, findUser } from "@/mock/mockUsers";
 
 export default function AuthModal({ open, mode = "login", onOpenChange, onAuth }) {
   const [done, setDone] = useState(false);
@@ -54,21 +54,6 @@ export default function AuthModal({ open, mode = "login", onOpenChange, onAuth }
     }
   };
 
-  const handleGoogle = () => {
-    const u = findOrCreateGoogleUser();
-    if (!u) {
-      toast.error("Google sign-in failed (demo)");
-      return;
-    }
-    try {
-      localStorage.setItem("username", u.name || u.email.split("@")[0]);
-      localStorage.setItem("auth_email", u.email);
-    } catch (e) {}
-    setDone(true);
-    toast.success("Signed in with Google — demo only");
-    onAuth?.(u.name || u.email.split("@")[0]);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -104,16 +89,7 @@ export default function AuthModal({ open, mode = "login", onOpenChange, onAuth }
               <DialogTitle className="font-display text-2xl font-bold tracking-tight">{m === "signup" ? "Create account" : "Sign in"}</DialogTitle>
               <DialogDescription className="text-sm text-slate">Demo-only authentication stored in your browser.</DialogDescription>
             </DialogHeader>
-            <div className="mt-4 space-y-3.5">
-              <button
-                type="button"
-                data-testid="auth-google-button"
-                onClick={handleGoogle}
-                className="w-full inline-flex items-center justify-center gap-3 rounded-full border border-edge bg-white px-4 py-3 text-sm font-semibold transition-colors hover:bg-mist"
-              >
-                <span className="h-4 w-4 rounded-sm bg-red-500" /> Continue with Google
-              </button>
-              <form onSubmit={submit} className="space-y-3.5">
+            <form onSubmit={submit} className="mt-4 space-y-3.5">
               {m === "signup" && (
                 <input
                   type="text"

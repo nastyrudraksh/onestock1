@@ -43,16 +43,4 @@ try {
   // ignore
 }
 
-export function findOrCreateGoogleUser() {
-  try {
-    const email = "google@onestock.local";
-    let u = findUser(email);
-    if (u) return u;
-    u = addUser({ email, name: "Google User", password: "", provider: "google" });
-    return u;
-  } catch (e) {
-    return null;
-  }
-}
-
 export default { getUsers, setUsers, addUser, findUser };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -10,6 +10,43 @@ import {
   FY_COLS, buildFundamentals, buildAltRows, SALES_WEEKS, SALES_ROWS, NAV_TABS, ALT_TABS, GROWTH_PERIODS,
 } from "./PanelViews";
 import { CandleChart } from "../landing/charts";
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+// Polls the FastAPI SmartAPI bridge every live tick; falls back to demo data when null.
+const useLiveMarket = (indexName, live, tick) => {
+  const [data, setData] = useState(undefined); // undefined = connecting, null = demo fallback, object = live
+  useEffect(() => { setData(undefined); }, [indexName]);
+  useEffect(() => {
+    if (!live) return;
+    let dead = false;
+    fetch(`${API}/api/market/snapshot?index=${encodeURIComponent(indexName)}`)
+      .then((r) => r.json())
+      .then((j) => { if (!dead) setData(j.live ? j : null); })
+      .catch(() => { if (!dead) setData((d) => (d === undefined ? null : d)); });
+    return () => { dead = true; };
+  }, [indexName, live, tick]);
+  return data;
+};
+
+const useLiveCandles = (indexName, chartRange, live, tick) => {
+  const [pts, setPts] = useState(null);
+  const lastKey = useRef("");
+  useEffect(() => {
+    if (!live) return;
+    const key = `${indexName}|${chartRange}`;
+    if (lastKey.current === key && tick % 15 !== 0) return;
+    lastKey.current = key;
+    let dead = false;
+    fetch(`${API}/api/market/candles?index=${encodeURIComponent(indexName)}&range=${chartRange}`)
+      .then((r) => r.json())
+      .then((j) => { if (!dead) setPts(j.live && j.points?.length >= 10 ? j.points : null); })
+      .catch(() => {});
+    return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indexName, chartRange, live, tick]);
+  return pts;
+};
 
 const SECTORS = {
   BANKING: ["HDFCBANK", "ICICIBANK", "SBIN", "AXISBANK", "KOTAKBANK", "INDUSINDBK"],
@@ -266,6 +303,9 @@ export function MarketView({ onBack }) {
   const [growthType, setGrowthType] = useState("Year-over-Year");
   const [periodicity, setPeriodicity] = useState("Weekly");
 
+  const liveMkt = useLiveMarket(indexName, live, tick);
+  const liveCandles = useLiveCandles(indexName, chartRange, live, tick);
+
   const PANEL_KEYS = ["breadth", "board", "movers", "sectors", "volmov", "chart", "idxperf", "oiintel", "oi", "oiactivity", "fiidii", "sentiment", "inst", "news", "fund", "alt", "sales"];
   const togglePanel = (k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
   const setAll = (v) => setCollapsed(Object.fromEntries(PANEL_KEYS.map((k) => [k, v])));
@@ -324,7 +364,15 @@ export function MarketView({ onBack }) {
     }, ...prev].slice(0, 8));
   }, []);
 
-  const stocks = index.stocks;
+  const updateDemoTradeQuantity = useCallback((id, nextQty) => {
+    const quantity = Math.max(1, Number(nextQty) || 1);
+    setDemoTrades((prev) => prev.map((trade) => trade.id === id ? { ...trade, quantity, note: `${trade.side} ${quantity} lots` } : trade));
+  }, []);
+
+  const stocks = liveMkt?.stocks?.length >= Math.ceil(index.stocks.length * 0.6)
+    ? liveMkt.stocks.map((s) => ({ ...s, name: index.stocks.find((m) => m.sym === s.sym)?.name || s.sym }))
+    : index.stocks;
+  const effIndex = liveMkt?.index || index;
   const derived = useMemo(() => {
     const advances = stocks.filter((s) => s.chgPct > 0);
     const declines = stocks.filter((s) => s.chgPct < 0);
@@ -335,11 +383,11 @@ export function MarketView({ onBack }) {
     const withRel = stocks.map((s) => ({ ...s, relVol: +(Number(s.volume) / avgVol).toFixed(2) }));
     const upVol = advances.reduce((a, s) => a + Number(s.volume), 0);
     const totVol = stocks.reduce((a, s) => a + Number(s.volume), 0) || 1;
-    const oi = oiRowsFor(tick);
+    const oi = liveMkt?.oiChain?.rows?.length ? liveMkt.oiChain.rows : oiRowsFor(tick);
     const totalCall = oi.reduce((a, r) => a + r.callOi, 0);
     const totalPut = oi.reduce((a, r) => a + r.putOi, 0);
     const pcr = totalPut / totalCall;
-    const chgNum = parseFloat(index.chg);
+    const chgNum = parseFloat(effIndex.chg);
     const sentiment = Math.round(Math.min(100, Math.max(0,
       (advances.length / stocks.length) * 55 + (chgNum > 0 ? 15 : 5) + (pcr - 0.8) * 40 + 10)));
     return {
@@ -367,11 +415,11 @@ export function MarketView({ onBack }) {
         downVolPct: ((1 - upVol / totVol) * 100).toFixed(1),
       },
     };
-  }, [stocks, gainerCount, tick, index.chg]);
+  }, [stocks, gainerCount, tick, effIndex.chg, liveMkt]);
 
   const visibleStocks = sectorFilter ? stocks.filter((s) => SECTOR_OF[s.sym] === sectorFilter) : stocks;
-  const px = parseFloat(index.px.replace(/,/g, ""));
-  const chgNum = parseFloat(index.chg);
+  const px = parseFloat(effIndex.px.replace(/,/g, ""));
+  const chgNum = parseFloat(effIndex.chg);
   const volH = (12.4 + (mixHash(`hdr-${indexName}`) % 800) / 10).toFixed(1);
   const fx = (v, dec = 2) =>
     currency === "USD" ? `$${(v / 84).toLocaleString("en-US", { maximumFractionDigits: dec })}` : `₹${v.toLocaleString("en-IN", { maximumFractionDigits: dec })}`;
@@ -383,8 +431,9 @@ export function MarketView({ onBack }) {
   ];
   const funds = buildFundamentals();
   const altRows = buildAltRows();
-  const idxSig = buildSignal({ name: indexName, px: index.px }, tick, enabled);
-  const chart = useMemo(() => chartSeries(`${indexName}-${chartRange}`, px), [indexName, chartRange, px]);
+  const idxSig = buildSignal({ name: indexName, px: effIndex.px }, tick, enabled);
+  const mockChart = useMemo(() => chartSeries(`${indexName}-${chartRange}`, px), [indexName, chartRange, px]);
+  const chart = liveCandles || mockChart;
   const refreshBtn = (
     <button onClick={() => { setTick((t) => t + 1); toast.success("Panel refreshed", { description: "Demo feed ticked." }); }}
       className="flex h-6 w-6 items-center justify-center rounded border border-night-line bg-white/5 text-cloud transition-colors hover:bg-white/10"
@@ -464,7 +513,9 @@ export function MarketView({ onBack }) {
 
       <div className="space-y-1">
         <div className="flex items-center justify-end gap-2">
-          <span className="mr-auto font-mono text-[9px] font-bold uppercase tracking-wider text-amber-500/80">Simulated Market Data · Demo</span>
+          <span data-testid="market-data-mode" className={`mr-auto font-mono text-[9px] font-bold uppercase tracking-wider ${liveMkt ? "text-green-400" : "text-amber-500/80"}`}>
+            {liveMkt ? `Live · Angel One SmartAPI${liveMkt.marketOpen ? "" : " · Market Closed"}` : liveMkt === undefined ? "Connecting to live feed…" : "Simulated Market Data · Demo"}
+          </span>
           <button data-testid="market-minimize-all" onClick={() => setAll(true)}
             className="rounded border border-[#333] bg-[#111] px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[#999] transition-colors hover:bg-[#1a1a1a]">
             Minimize All
@@ -525,7 +576,7 @@ export function MarketView({ onBack }) {
               ))}
             </div>
             <button data-testid="terminal-signal-button"
-              onClick={() => setSignalFor({ name: indexName, px: index.px, chg: index.chg })}
+              onClick={() => setSignalFor({ name: indexName, px: effIndex.px, chg: effIndex.chg })}
               className={`ml-auto inline-flex items-center gap-1 rounded px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-wider text-white transition-all active:scale-95 ${idxSig.buy ? "bg-green-600 hover:bg-green-500" : "bg-red-600 hover:bg-red-500"}`}>
               <Zap className="h-3 w-3" /> Signal · {idxSig.dir}
             </button>
@@ -561,7 +612,7 @@ export function MarketView({ onBack }) {
               ["Put OI Chg", `${derived.oi.reduce((a, r) => a + r.putChg, 0) > 0 ? "+" : ""}${(derived.oi.reduce((a, r) => a + r.putChg, 0) / 100).toFixed(1)}L`, "text-white"],
               ["Max Call OI", derived.maxCall.strike.toLocaleString("en-IN"), "text-rose-400"],
               ["Max Put OI", derived.maxPut.strike.toLocaleString("en-IN"), "text-signal"],
-              ["ATM", OI_SPOT.toLocaleString("en-IN"), "text-amber-400"],
+              ["ATM", (liveMkt?.oiChain?.spot || OI_SPOT).toLocaleString("en-IN"), "text-amber-400"],
               ["Support / Resistance", `${derived.maxPut.strike.toLocaleString("en-IN")} / ${derived.maxCall.strike.toLocaleString("en-IN")}`, "text-white"],
             ].map(([l, v, t]) => (
               <div key={l} className="bg-[#080808]"><StatMini l={l} v={v} tone={t} /></div>
@@ -573,7 +624,7 @@ export function MarketView({ onBack }) {
           <table className="w-full font-mono text-[10px]">
             <tbody>
               {INDEX_NAMES.map((n) => {
-                const ix = INDICES[n];
+                const ix = liveMkt?.indices?.[n] ? { ...INDICES[n], ...liveMkt.indices[n] } : INDICES[n];
                 const ixUp = ix.chg.startsWith("+");
                 return (
                   <tr key={n} data-testid={`idxperf-${slug(n)}`} onClick={() => { setIndexName(n); setSectorFilter(null); }}
@@ -807,7 +858,7 @@ export function MarketView({ onBack }) {
 
         {/* 10. OPTION CHAIN (existing) + 11. OI ACTIVITY */}
         <div className="[display:contents]">
-          <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} className="order-11" />
+          <OiChainCard tick={tick} onStrike={openStrike} collapsed={collapsed.oi} onToggle={() => togglePanel("oi")} className="order-11" live={liveMkt?.oiChain} />
           <TermPanel title="OI Activity" id="oiactivity-panel" className="order-12" collapsed={collapsed.oiactivity} onToggle={() => togglePanel("oiactivity")}>
             <table className="w-full font-mono text-[10px] [&_td]:border-r [&_td]:border-[#3d3d3d] [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-[#3d3d3d] [&_th:last-child]:border-r-0">
               <thead>
@@ -1101,8 +1152,45 @@ export function MarketView({ onBack }) {
           </table>
         </TermPanel>
 
+        <section className="order-[16] overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="active-trades-panel">
+          <header className="flex items-center justify-between border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Active Trades</span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#777]">{demoTrades.length} live</span>
+          </header>
+          {demoTrades.length === 0 ? (
+            <p className="px-3 py-2.5 font-mono text-[10px] text-[#777]">No active demo positions yet. Execute a trade from a signal card.</p>
+          ) : (
+            <div className="divide-y divide-[#1c1c1c]">
+              {demoTrades.map((trade, idx) => (
+                <div key={`${trade.id}-${idx}`} data-testid={`active-trade-row-${idx}`} className="flex items-center justify-between gap-2 px-2 py-2 font-mono text-[10px]">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded px-1.5 py-0.5 font-bold ${trade.side === "BUY" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>{trade.side}</span>
+                      <span className="truncate font-bold text-[#e5e5e5]">{trade.symbol}</span>
+                    </div>
+                    <div className="mt-1 text-[#777]">₹{Number(trade.price).toLocaleString("en-IN")} · {trade.time}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="sr-only" htmlFor={`trade-qty-${trade.id}`}>Quantity</label>
+                    <input
+                      id={`trade-qty-${trade.id}`}
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={trade.quantity}
+                      onChange={(e) => updateDemoTradeQuantity(trade.id, e.target.value)}
+                      className="w-14 rounded border border-[#333] bg-[#0d0d0d] px-1.5 py-1 text-center font-mono text-[10px] text-[#e5e5e5] outline-none focus:border-amber-400"
+                    />
+                    <span className="text-[#999]">lots</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* SIGNAL HISTORY */}
-        <section className="order-[16] overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="signal-history">
+        <section className="order-[17] overflow-hidden rounded-md border border-[#262626] bg-[#080808]" data-testid="signal-history">
           <header className="flex items-center justify-between border-b border-[#262626] bg-[#0d0d0d] px-2 py-0.5">
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-amber-400">Signal History</span>
             {history.length > 0 && (

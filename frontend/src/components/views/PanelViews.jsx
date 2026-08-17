@@ -462,6 +462,11 @@ export const buildSignal = (m, tick = 0, enabled = [true, true, true, true, true
 
 export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, onToggleIndicator, onRefresh, onClose, onExecuteTrade }) {
   const sig = instrument ? buildSignal(instrument, tick, enabled) : null;
+  const [quantity, setQuantity] = useState(25);
+
+  useEffect(() => {
+    setQuantity(25);
+  }, [instrument?.name]);
 
   return (
     <AnimatePresence>
@@ -564,6 +569,37 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
               </div>
             </div>
 
+            <div className="mt-5 rounded-xl border border-edge bg-paper p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Lot Quantity</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 5))}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-edge bg-white text-sm font-bold text-slate"
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-16 rounded-lg border border-edge bg-white px-2 py-1.5 text-center font-mono text-sm font-bold text-ink outline-none focus:border-ember"
+                    aria-label="Trade quantity"
+                  />
+                  <button
+                    onClick={() => setQuantity((q) => q + 5)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-edge bg-white text-sm font-bold text-slate"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="mt-5 flex gap-3">
               <button
                 data-testid="signal-execute-button"
@@ -573,7 +609,7 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
                     symbol: instrument.name,
                     action: sig.buy ? "BUY" : "SELL",
                     type: sig.dir,
-                    quantity: 25,
+                    quantity,
                     price: Number(instrument.px.replace(/,/g, "")),
                     time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
                   };
@@ -948,11 +984,12 @@ const OI_COL_TOGGLES = [
   { key: "iv", label: "IV" },
 ];
 
-export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle, className = "" }) {
+export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle, className = "", live = null }) {
   const [tab, setTab] = useState("total");
   const [cols, setCols] = useState({ market: false, callOi: true, putOi: true, callChg: true, putChg: true, strike: true, iv: true });
 
-  const rows = OI_STRIKES.map((strike) => {
+  const spot = live?.spot || OI_SPOT;
+  const rows = live?.rows?.length ? live.rows : OI_STRIKES.map((strike) => {
     const h = mixHash(`oi-${strike}-${tick}`);
     const dist = Math.abs(strike - OI_SPOT) / 50;
     const nearBoost = Math.max(0, 60 - dist * 9);
@@ -983,7 +1020,10 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle, c
   return (
     <div className={`overflow-hidden rounded-xl border border-edge bg-white h-full min-h-[400px] flex flex-col ${className}`} data-testid="oi-chain">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-2 py-2">
-        <p className="font-mono text-[13px] uppercase tracking-[0.06em] text-slate">OI · Option Chain — Nifty 50</p>
+        <p className="font-mono text-[13px] uppercase tracking-[0.06em] text-slate">
+          OI · Option Chain — Nifty 50{live?.expiry ? ` · Exp ${live.expiry}` : ""}
+          {live && <span className="ml-2 rounded bg-signal/15 px-1.5 py-0.5 text-[8px] font-bold text-signal" data-testid="oi-live-badge">LIVE NSE</span>}
+        </p>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1 font-mono text-[8px] font-bold text-rose-500"><span className="h-2 w-2 rounded-sm bg-rose-500" /> Call OI</span>
           <span className="inline-flex items-center gap-1 font-mono text-[8px] font-bold text-signal"><span className="h-2 w-2 rounded-sm bg-signal" /> Put OI</span>
@@ -1058,7 +1098,7 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle, c
             </thead>
             <tbody>
               {rows.map((r) => {
-                const atm = Math.abs(r.strike - OI_SPOT) <= 25;
+                const atm = Math.abs(r.strike - spot) <= 25;
                 return (
                   <tr
                     key={r.strike}
@@ -1076,7 +1116,7 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle, c
                       </>
                     )}
                     {show("strike") && <td className={`!border-r-2 !border-slate-500 px-2 py-1 text-center font-bold ${atm ? "text-ember" : "text-ink"}`}>{r.strike}</td>}
-                    {show("iv") && <td className="px-2 py-1 text-slate">{r.iv}</td>}
+                    {show("iv") && <td className="px-2 py-1 text-slate">{r.iv ?? "—"}</td>}
                     {show("callOi") && (
                       <>
                         <td className="bg-rose-500/10 px-2 py-1 text-right font-bold text-ink">{r.callOi}</td>
@@ -1092,7 +1132,9 @@ export function OiChainCard({ tick = 0, onStrike, collapsed = false, onToggle, c
             </table>
           </div>
           <p className="border-t border-edge px-3 py-2 text-[12px] text-slate">
-            Demo option chain — click any strike to open its signal note. Randomly generated test data.
+            {live
+              ? "Live NSE option chain via Angel One SmartAPI — real open interest, refreshed every 15 seconds."
+              : "Demo option chain — click any strike to open its signal note. Randomly generated test data."}
           </p>
         </div>
       </Collapse>

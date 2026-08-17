@@ -1,0 +1,51 @@
+{
+  "summary": "Verified live Angel One SmartAPI wiring end-to-end. Backend endpoints /api/market/status, /api/market/snapshot (NIFTY 50 & SENSEX), /api/market/candles (1D & 1M) all return live:true with plausible values and cache-consistent behaviour across a 5s gap. Frontend Market view flips from initial demo-fallback to live within ~6s: badge shows 'Live · Angel One SmartAPI', terminal-price updates to real NIFTY (~24,327), constituents show real prices (RELIANCE ~1,314.7), OI chain shows LIVE NSE badge with Exp 18 Aug 2026 and real strike ladder, Advance/Decline sums to 49, Index Performance top rows (NIFTY 50/SENSEX/BANK NIFTY) show real prices matching API. Price ticked from 24,327.6 -> 24,328.45 across the 20s observation window confirming 4s live polling.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/market/candles (first call after cold start)", "issue": "First candles call sometimes hits SmartAPI DataException then auto-retries via re-login. Not user-visible (cached second call succeeds), but visible in logs as 'candles failed: DataException'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Initial Market view render", "issue": "For the first ~1-6 seconds before the first /api/market/snapshot resolves, the badge shows 'Simulated Market Data · Demo' and constituent rows show mock hash prices (e.g. RELIANCE 1,719.97). Flips to Live once liveMkt state is populated. Consider showing a 'Connecting to live feed…' state or gating the demo fallback behind a longer timeout to avoid the flash of mock data.", "affected_selectors": ["[data-testid=market-data-mode]", "[data-testid=constituent-reliance]"]}
+    ],
+    "design_issues": []
+  },
+  "verified_features": {
+    "backend_status": "PASS — configured:true, connected:true, masterLoaded:true, equityTokens=51, optionContracts=210, optionExpiry=2026-08-18",
+    "snapshot_nifty50": "PASS — live:true, index.px=24,326.80, 49 stocks, indices map has NIFTY 50/SENSEX/BANK NIFTY, oiChain.spot present, 28 rows with ascending integer strikes and callOi/putOi/callChg/putChg fields",
+    "snapshot_sensex": "PASS — live:true, ~29 stocks, index.px=77,790.43 (in 70k-90k range)",
+    "candles": "PASS — 1D returns 40+ points, 1M returns ~22 daily points, live:true, each point has t/v",
+    "cache_consistency": "PASS — two snapshot calls 5s apart both live:true with <5% price delta",
+    "frontend_badge": "PASS — flips to 'Live · Angel One SmartAPI' (green) after first fetch",
+    "frontend_prices": "PASS — terminal-price=₹24,328.45 (real), RELIANCE=1,314.7 (real, not mock 1,719.97), advance/decline=25/24 sums to 49",
+    "frontend_oi_chain": "PASS — oi-live-badge shows 'LIVE NSE', OI chain populated with real strikes",
+    "frontend_index_performance": "PASS — NIFTY 50 24,328.5 / SENSEX 77,803.86 / BANK NIFTY 57,585.85 all match backend",
+    "frontend_live_polling": "PASS — terminal-price ticked 24,327.6 -> 24,328.45 within the 20s window"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_market_live.py",
+    "/app/test_reports/pytest/market_live.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Suppress initial 'Simulated Market Data · Demo' flash on Market view by showing a neutral 'Connecting…' state until first /api/market/snapshot resolves (or until a short (~3s) timeout), so users don't briefly see mock RELIANCE 1,719.97 etc.",
+    "OPTIONAL: Investigate the recurring cold-start 'candles failed: DataException' log line (SmartAPI transient); auto-retry works but adds a login round-trip on first candles call."
+  ],
+  "critical_code_review_comments": [
+    "useLiveMarket in terminal.jsx (line 17-29) does not clear `data` when indexName changes; when switching from NIFTY 50 to SENSEX, the previous index's snapshot briefly remains until the new fetch resolves. Consider setData(null) on indexName change, or a stale-key guard.",
+    "useLiveCandles gates re-fetch behind `tick % 15 !== 0` even when only chartRange or indexName changes, which is fine because the key-check runs first, but the early return prevents any refetch on the same key between 15-tick boundaries — intentional but worth a comment.",
+    "market_data.py candles path throws DataException on first call after login; a warmup call or exponential backoff on the first failure (instead of only re-login-once) would be cleaner."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_market_live.py (new)"
+  ],
+  "success_rate": {"backend": "100% (5/5)", "frontend": "100%"},
+  "seed_data_creation": "None — live SmartAPI data",
+  "test_credentials": "N/A (no auth on Market view; entry via Get Started button)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Live SmartAPI is configured and working. Real prices only tick 09:15-15:30 IST Mon-Fri; outside those hours values are static last-close (not a bug). Do NOT hammer endpoints — SmartAPI limits 10 req/s market data, 1/s searchScrip. Backend test file is /app/backend/tests/test_market_live.py (pytest, uses REACT_APP_BACKEND_URL). Frontend Market view is reachable via landing 'Get Started' -> sidebar 'Market'; wait ~6s after entering Market before asserting on live badge/prices to avoid the initial demo-flash.",
+  "rca of the issue": "N/A — no blocking bug. Only observation: initial mock flash on Market view is due to useLiveMarket returning null on first render (fetch has not resolved), and the badge/effIndex/stocks all fall back to demo constants until the first snapshot arrives (~1-6s later)."
+}
