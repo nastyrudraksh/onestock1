@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft, Landmark, Wallet, ArrowDownToLine, ArrowUpFromLine,
@@ -405,6 +405,63 @@ export function SettingsView({ onBack, stepsDone, setStepsDone, aiEnabled, setAi
           className="mt-4 inline-flex items-center gap-2 rounded-full border border-edge px-6 py-3 text-sm font-semibold transition-colors hover:bg-mist">
           Complete All Steps & Start Trading
         </button>
+      </Reveal>
+    </Shell>
+  );
+}
+
+export function AdminUsersView({ onBack }) {
+  const [users, setUsers] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let dead = false;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/users`, { credentials: "include" })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Failed to load users");
+        if (!dead) setUsers(d.users || []);
+      })
+      .catch((e) => { if (!dead) setError(e.message); });
+    return () => { dead = true; };
+  }, []);
+
+  return (
+    <Shell title="Registered Users" desc="Every account on this OneStock deployment — email/password and Google sign-ins." onBack={onBack} testid="admin-users-view">
+      <Reveal>
+        <div className="overflow-hidden rounded-2xl border border-edge bg-white">
+          {error && <p data-testid="admin-users-error" className="px-5 py-4 text-sm font-semibold text-rose-600">{error}</p>}
+          {!error && users === null && <p className="px-5 py-4 font-mono text-xs text-slate">Loading users…</p>}
+          {users && (
+            <table className="w-full text-left font-mono text-[12px]" data-testid="admin-users-table">
+              <thead>
+                <tr className="border-b border-edge text-slate">
+                  <th className="px-4 py-2.5 font-semibold">Name</th>
+                  <th className="px-4 py-2.5 font-semibold">Email</th>
+                  <th className="px-4 py-2.5 font-semibold">Provider</th>
+                  <th className="px-4 py-2.5 font-semibold">Role</th>
+                  <th className="px-4 py-2.5 font-semibold">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.user_id} data-testid={`admin-user-${u.email}`} className="border-b border-edge/60 last:border-0">
+                    <td className="px-4 py-2.5 font-bold text-ink">{u.name || "—"}</td>
+                    <td className="px-4 py-2.5 text-slate">{u.email}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${u.provider === "google" ? "bg-blue-50 text-blue-600" : "bg-mist text-slate"}`}>{u.provider}</span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${u.role === "admin" ? "bg-amber-100 text-amber-700" : "bg-mist text-slate"}`}>{u.role}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-slate">{u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN") : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {users && <p className="border-t border-edge px-4 py-2 font-mono text-[10px] text-slate">{users.length} account{users.length === 1 ? "" : "s"}</p>}
+        </div>
       </Reveal>
     </Shell>
   );

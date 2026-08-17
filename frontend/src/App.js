@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Lenis from "lenis";
+import { toast } from "sonner";
 import "@/App.css";
 import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/landing/Navbar";
@@ -16,16 +17,63 @@ import Testimonials from "@/components/landing/Testimonials";
 import FAQ from "@/components/landing/FAQ";
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
-import SignupDialog from "@/components/landing/SignupDialog";
 import UserPanel from "@/components/panel/UserPanel";
+import AuthModal from "@/components/auth/AuthModal";
+import { AuthProvider, useAuth } from "@/auth/AuthContext";
 import { scrollToSection } from "@/lib/scroll";
+import { Loader2 } from "lucide-react";
 
-export default function App() {
+function AuthCallback({ onDone }) {
+  const { exchangeGoogleSession } = useAuth();
+  const processed = useRef(false);
+
+  useEffect(() => {
+    if (processed.current) return;
+    processed.current = true;
+    const sid = window.location.hash.split("session_id=")[1]?.split("&")[0];
+    if (!sid) { onDone(false); return; }
+    exchangeGoogleSession(sid)
+      .then((user) => {
+        window.history.replaceState(null, "", window.location.pathname);
+        toast.success(`Welcome, ${user.name}`);
+        onDone(true);
+      })
+      .catch((err) => {
+        window.history.replaceState(null, "", window.location.pathname);
+        toast.error(err.message || "Google sign-in failed");
+        onDone(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-paper" data-testid="auth-callback">
+      <Loader2 className="h-8 w-8 animate-spin text-ember" />
+      <p className="font-mono text-xs uppercase tracking-widest text-slate">Signing you in securely…</p>
+    </div>
+  );
+}
+
+function AppInner({ startInPanel = false }) {
+  const { user } = useAuth();
   const [cta, setCta] = useState({ open: false, mode: "signup" });
-  const [view, setView] = useState("website");
-  const openCta = (mode = "signup") => setCta({ open: true, mode });
+  const [view, setView] = useState(startInPanel ? "panel" : "website");
+  const openCta = (mode = "signup") => {
+    if (user) {
+      // already signed in — CTAs go straight to the panel
+      setView("panel");
+      window.__lenis?.scrollTo(0, { immediate: true });
+      return;
+    }
+    setCta({ open: true, mode });
+  };
 
   const navigate = (v) => {
+    if (v !== "website" && !user) {
+      // panel is gated — sign in first
+      setCta({ open: true, mode: "login" });
+      return;
+    }
     setView(v);
     window.__lenis?.scrollTo(0, { immediate: true });
   };
@@ -79,12 +127,35 @@ export default function App() {
       ) : (
         <UserPanel module={view} onModule={navigate} onWebsite={() => navigate("website")} />
       )}
-      <SignupDialog
+      <AuthModal
         open={cta.open}
         mode={cta.mode}
         onOpenChange={(open) => setCta((s) => ({ ...s, open }))}
+        onAuth={() => {
+          // auth just succeeded — enter directly (the gate's `user` state isn't flushed yet in this tick)
+          setView("panel");
+          window.__lenis?.scrollTo(0, { immediate: true });
+        }}
       />
-      <Toaster position="top-center" richColors />
     </div>
+  );
+}
+
+export default function App() {
+  // Google OAuth return: session_id lives in the URL fragment and must be exchanged
+  // before the main app (and its hooks) mount — this branch keeps hook order stable.
+  const [oauth, setOauth] = useState(() => ({
+    pending: window.location.hash?.includes("session_id="),
+    ok: false,
+  }));
+  return (
+    <AuthProvider>
+      {oauth.pending ? (
+        <AuthCallback onDone={(ok) => setOauth({ pending: false, ok })} />
+      ) : (
+        <AppInner startInPanel={oauth.ok} />
+      )}
+      <Toaster position="top-center" richColors />
+    </AuthProvider>
   );
 }

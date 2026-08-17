@@ -4,14 +4,14 @@ import { toast } from "sonner";
 import {
   TrendingUp, LayoutDashboard, Landmark, Wallet, Receipt, Settings,
   Menu, X, Globe, LogOut, Activity, ChevronRight, Home, Check, Crown,
-  CandlestickChart, Tag,
+  CandlestickChart, Tag, Users,
 } from "lucide-react";
-import { BrokerView, WalletView, TransactionsView, SettingsView } from "../views/ModuleViews";
+import { BrokerView, WalletView, TransactionsView, SettingsView, AdminUsersView } from "../views/ModuleViews";
 import { MarketView } from "../views/terminal";
 import { PlanView, TierView } from "../views/PanelViews";
 import ProDashboard from "../views/ProDashboard";
 import { Reveal } from "../landing/Reveal";
-import AuthModal from "../auth/AuthModal";
+import { useAuth } from "@/auth/AuthContext";
 import { getBalance as getWalletBalance } from "@/mock/mockWallet";
 
 const MENU = [
@@ -23,6 +23,7 @@ const MENU = [
   { icon: Wallet, label: "Fund Wallet", view: "wallet" },
   { icon: Receipt, label: "Transactions", view: "transactions" },
   { icon: Settings, label: "Settings", view: "settings" },
+  { icon: Users, label: "Users", view: "admin-users", adminOnly: true },
 ];
 
 const STEP_LABELS = ["Select Broker", "Activation Fee", "Broker Validation", "KYC Verification"];
@@ -36,7 +37,7 @@ const PANEL_STATS = [
   { label: "Available Margin", value: "₹18,400", tone: "dark" },
 ];
 
-const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, prefix, username, onSignIn, onSignUp, onLogout, aiEnabled, onToggleAI }) => (
+const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, prefix, user, onLogout, aiEnabled, onToggleAI }) => (
   <div className="flex h-full flex-col">
     <div className="flex items-center gap-2.5 px-5 pt-6">
       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-signal">
@@ -72,7 +73,7 @@ const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, pref
 
     <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
       <p className="px-3 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-slate/70">Menu</p>
-      {MENU.map((item) => {
+      {MENU.filter((item) => !item.adminOnly || user?.role === "admin").map((item) => {
         const active = module === item.view;
         return (
           <button
@@ -98,31 +99,25 @@ const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, pref
       >
         <Globe className="h-4 w-4" /> View Website
       </button>
-      {username ? (
-        <button
-          data-testid={`${prefix}-logout`}
-          onClick={onLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-xs font-semibold text-slate transition-colors hover:text-ink"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Logout
-        </button>
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
+      {user && (
+        <>
+          <div className="flex items-center gap-2.5 rounded-xl border border-edge bg-mist/60 px-3 py-2.5" data-testid={`${prefix}-user-chip`}>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink font-mono text-xs font-bold text-signal">
+              {(user.name || user.email || "U").slice(0, 1).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs font-bold text-ink">{user.name || "User"}</span>
+              <span className="block truncate font-mono text-[10px] text-slate">{user.email}{user.role === "admin" ? " · ADMIN" : ""}</span>
+            </span>
+          </div>
           <button
-            data-testid={`${prefix}-signin`}
-            onClick={onSignIn}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-edge py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-mist"
+            data-testid={`${prefix}-logout`}
+            onClick={onLogout}
+            className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-xs font-semibold text-slate transition-colors hover:text-ink"
           >
-            Sign in
+            <LogOut className="h-3.5 w-3.5" /> Logout
           </button>
-          <button
-            data-testid={`${prefix}-signup`}
-            onClick={onSignUp}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-ember py-2.5 text-xs font-semibold text-white transition-all hover:brightness-110 active:scale-95"
-          >
-            Sign up
-          </button>
-        </div>
+        </>
       )}
       <div className="mt-2">
         <button
@@ -297,10 +292,8 @@ const PanelHome = ({ stepsDone, completeStep, live, onModule }) => (
 );
 
 export default function UserPanel({ module, onModule, onWebsite }) {
+  const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [username, setUsername] = useState(null);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState("login");
   const [walletBalance, setWalletBalance] = useState(() => {
     try {
       return getWalletBalance();
@@ -317,15 +310,6 @@ export default function UserPanel({ module, onModule, onWebsite }) {
     toast.success(`${STEP_LABELS[stepsDone]} completed`, { description: "Demo only — nothing was submitted." });
     setStepsDone((s) => s + 1);
   };
-
-  useEffect(() => {
-    try {
-      const u = localStorage.getItem("username");
-      if (u) setUsername(u);
-    } catch (e) {
-      // ignore (fallback for environments without localStorage)
-    }
-  }, []);
 
   useEffect(() => {
     const onUpdate = (e) => {
@@ -355,28 +339,14 @@ export default function UserPanel({ module, onModule, onWebsite }) {
     toast.success(next ? "AI notifications enabled" : "AI notifications disabled", { description: next ? "Traders will receive AI alerts." : "AI alerts turned off." });
   };
 
-  const openAuth = (mode) => {
-    setAuthMode(mode);
-    setAuthOpen(true);
-  };
-
-  const handleAuth = (name) => {
-    setUsername(name);
-    setAuthOpen(false);
-  };
-
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem("username");
-      localStorage.removeItem("auth_email");
-    } catch (e) {}
-    setUsername(null);
-    toast.info("Logged out", { description: "Demo only — there is no real session." });
+  const handleLogout = async () => {
+    await logout();
+    toast.info("Logged out", { description: "Your session has been closed securely." });
+    onWebsite();
   };
 
   return (
     <div data-testid="user-panel">
-      <AuthModal open={authOpen} mode={authMode} onOpenChange={setAuthOpen} onAuth={handleAuth} />
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-edge bg-white lg:block" data-testid="panel-sidebar">
         <PanelBody
           module={module}
@@ -385,9 +355,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
           stepsDone={stepsDone}
           live={live}
           prefix="panel-nav"
-          username={username}
-          onSignIn={() => openAuth("login")}
-          onSignUp={() => openAuth("signup")}
+          user={user}
           onLogout={handleLogout}
           aiEnabled={aiEnabled}
           onToggleAI={toggleAI}
@@ -424,9 +392,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
                 live={live}
                 onClose={() => setMenuOpen(false)}
                 prefix="panel-mobile-nav"
-                username={username}
-                onSignIn={() => { setMenuOpen(false); openAuth("login"); }}
-                onSignUp={() => { setMenuOpen(false); openAuth("signup"); }}
+                user={user}
                 onLogout={() => { setMenuOpen(false); handleLogout(); }}
                 aiEnabled={aiEnabled}
                 onToggleAI={(e) => { setMenuOpen(false); toggleAI(); }}
@@ -447,7 +413,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <span className="hidden sm:inline ml-2 mr-2 text-sm font-semibold text-ink">{username ? `Hello, ${username}` : "Hello, Demo User"}</span>
+            <span className="hidden sm:inline ml-2 mr-2 text-sm font-semibold text-ink" data-testid="panel-greeting">{user ? `Hello, ${user.name}` : "Hello"}</span>
             <nav className="flex items-center gap-1.5 text-sm text-slate">
               <Home className="h-3.5 w-3.5 text-signal" />
               <ChevronRight className="h-3.5 w-3.5" />
@@ -476,6 +442,7 @@ export default function UserPanel({ module, onModule, onWebsite }) {
           {module === "broker" && <BrokerView onBack={() => onModule("panel")} />}
           {module === "wallet" && <WalletView onBack={() => onModule("panel")} />}
           {module === "transactions" && <TransactionsView onBack={() => onModule("panel")} />}
+          {module === "admin-users" && user?.role === "admin" && <AdminUsersView onBack={() => onModule("panel")} />}
           {module === "settings" && (
             <SettingsView
               onBack={() => onModule("panel")}

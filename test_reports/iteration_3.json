@@ -1,0 +1,44 @@
+{
+  "summary": "Full auth stack tested end-to-end against preview URL. 8/9 pytest cases pass (register/duplicate/wrong-password/refresh/logout/admin-list/admin-403/forgot-reset all green; lockout FAILS because identifier keys by request.client.host which varies across k8s ingress pod IPs). Frontend UI verified: registration lands in panel with greeting/email chip and no Users nav; reload preserves session so 'Get Started' jumps straight into panel with no modal; logout returns to landing and reopens modal; admin login shows ADMIN chip + Users menu; /users table lists all 13 accounts with provider/role badges; live Angel One SmartAPI terminal (NIFTY 24,287.65, LIVE badge) still renders while authenticated; Google button correctly navigates to https://auth.emergentagent.com/oauth/?redirect=https%3A%2F%2Ftradesense-hub-1.preview.emergentagent.com%2F.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Brute-force lockout NEVER triggers behind the k8s ingress. login_attempts identifier is 'ip:email' using request.client.host, but that host is the internal load-balancer/pod IP (observed 10.81.21.17 and 10.81.2.194 alternating for the same user). Failed attempts get split across pod IPs so no single counter reaches LOCK_AFTER=5. Verified: 8 consecutive wrong-password calls all return 401, none 429; login_attempts docs show count=3 and count=4 for the same email under two different IP keys. Fix: read the real client IP from X-Forwarded-For / X-Real-IP header (fallback to request.client.host), or key by email only.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard (Recharts)", "issues": ["Multiple console warnings 'The width(-1) and height(-1) of chart should be greater than 0' from Recharts ResponsiveContainer — set an explicit minHeight/minWidth on the chart wrapper to silence."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_flows.py",
+    "/app/test_reports/pytest/auth_flows.xml"
+  ],
+  "action_items": [
+    "Fix login lockout: use X-Forwarded-For (real client IP) or key login_attempts by email only, otherwise the 5-in-15-min protection is effectively disabled behind the ingress.",
+    "(Nit) Add minWidth/minHeight to Recharts wrapper on Dashboard to silence 'width(-1) height(-1)' warnings."
+  ],
+  "critical_code_review_comments": [
+    "auth.py login identifier uses request.client.host which is the internal pod IP behind Cloudflare + k8s ingress — locking is silently disabled in this deployment.",
+    "set_jwt_cookies uses samesite=none + secure=true which is required for the preview URL but WILL break on plain http localhost; acceptable as documented.",
+    "google_session uses blocking requests.get inside async route — should be httpx.AsyncClient to avoid blocking the event loop on OAuth exchange latency.",
+    "get_current_user falls through Bearer to session_token — good, but the same bearer_token variable is reused for the session lookup which is a subtle overload; keep separate names for clarity."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_flows.py"
+  ],
+  "success_rate": {"backend": "89%", "frontend": "100%"},
+  "test_credentials": "admin@onestock.in / OneStock#Admin2026 (admin); throwaway registered users created per-test with prefix test_/uitest_",
+  "seed_data_creation": "Backend test suite registered ~10 throwaway users (uitest_*, test_reg_*, test_ref_*, test_lock_*, test_reset_*, test_norm_*, test_dup_*) — visible in /api/auth/users. Safe to purge with a delete-where-email-starts-with('test_')/uitest_ script.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Only the lockout identifier needs a re-test after main agent fixes it. Everything else (register/login/refresh/logout/me/admin/forgot-reset/session persistence via cookies/Google redirect/market terminal regression/UI gating) is green. Use throwaway account for lockout — do NOT lock admin@onestock.in.",
+  "rca of the issue": "Backend runs behind Cloudflare + Kubernetes ingress. The FastAPI request.client.host returns the ingress/load-balancer's internal address (observed 10.81.21.17 and 10.81.2.194 rotating for the same external client), so the compound key 'ip:email' partitions the counter across pod IPs. Each partition tops out at ~3-4 fails, never crossing the LOCK_AFTER=5 threshold in _check_lock, and 429 is never raised. Reproduction: register any user, POST /api/auth/login with wrong password 8 times — every response is 401. db.login_attempts shows two separate documents for the same email, each with count<5. Mitigation: parse X-Forwarded-For (first hop) as the true client IP, or drop the IP component entirely and lock by email (or email + user-agent hash)."
+}
