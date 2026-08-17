@@ -62,6 +62,21 @@ const useLiveInstruments = (live, tick) => {
   return quotes;
 };
 
+// FII/DII flows update once daily — fetch on entry, then re-check every 60th tick (~4 min)
+const useFiidii = (live, tick) => {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    if (!live || tick % 60 !== 0) return;
+    let dead = false;
+    fetch(`${API}/api/market/fiidii`)
+      .then((r) => r.json())
+      .then((j) => { if (!dead) setData(j.live ? j : null); })
+      .catch(() => {});
+    return () => { dead = true; };
+  }, [live, tick]);
+  return data;
+};
+
 const SECTORS = {
   BANKING: ["HDFCBANK", "ICICIBANK", "SBIN", "AXISBANK", "KOTAKBANK", "INDUSINDBK"],
   IT: ["TCS", "INFY", "HCLTECH", "WIPRO", "TECHM"],
@@ -320,6 +335,7 @@ export function MarketView({ onBack }) {
   const liveMkt = useLiveMarket(indexName, live, tick);
   const liveCandles = useLiveCandles(indexName, chartRange, live, tick);
   const liveInst = useLiveInstruments(live, tick);
+  const fiidii = useFiidii(live, tick);
 
   const PANEL_KEYS = ["breadth", "board", "movers", "sectors", "volmov", "chart", "idxperf", "oiintel", "oi", "oiactivity", "fiidii", "sentiment", "inst", "news", "fund", "alt", "sales"];
   const togglePanel = (k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
@@ -338,14 +354,14 @@ export function MarketView({ onBack }) {
 
   useEffect(() => {
     if (tick === 0) return;
-    const strong = instView.map((m) => ({ m, sig: buildSignal(m, tick, enabled) }))
+    const strong = instView.map((m) => ({ m, sig: buildSignal(m, tick, enabled, oiBias) }))
       .filter((x) => x.sig.confidence >= 90).slice(0, 2);
     if (strong.length > 0) playAlertBeep();
     strong.forEach(({ m, sig }) => {
       const fn = sig.buy ? toast.success : toast.error;
       fn(`Strong Signal: ${m.name}`, {
         id: `strong-${slug(m.name)}-${tick}`,
-        description: `${sig.dir} · ${sig.confidence}% confidence · demo test model`,
+        description: `${sig.dir} · ${sig.confidence}% confidence · ${sig.oiInfluenced ? "live OI biased test model" : "demo test model"}`,
         style: sig.buy
           ? { background: "#00D084", color: "#06281C", border: "1px solid #00B573" }
           : { background: "#F43F5E", color: "#FFFFFF", border: "1px solid #E11D48" },
@@ -356,7 +372,7 @@ export function MarketView({ onBack }) {
 
   useEffect(() => {
     if (!signalFor) return;
-    const sig = buildSignal(signalFor, tick, enabled);
+    const sig = buildSignal(signalFor, tick, enabled, oiBias);
     const time = new Date().toLocaleTimeString("en-IN", { hour12: false });
     setHistory((h) => [{ name: signalFor.name, dir: sig.dir, buy: sig.buy, confidence: sig.confidence, time }, ...h].slice(0, 8));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -397,6 +413,15 @@ export function MarketView({ onBack }) {
     : index.stocks;
   const effIndex = liveMkt?.index || index;
   const instView = INSTRUMENTS.map((m) => (liveInst?.[m.name] ? { ...m, ...liveInst[m.name], live: true } : m));
+  // Real Put−Call OI skew from the live option chain steers signal direction (PCR > 1 = puts dominate = CALL bias)
+  const oiBias = (() => {
+    const rows = liveMkt?.oiChain?.rows;
+    if (!rows?.length) return 0;
+    const tc = rows.reduce((a, r) => a + r.callOi, 0);
+    const tp = rows.reduce((a, r) => a + r.putOi, 0);
+    const pcr = tp / (tc || 1);
+    return pcr >= 1.02 ? 1 : pcr <= 0.98 ? -1 : 0;
+  })();
   const derived = useMemo(() => {
     const advances = stocks.filter((s) => s.chgPct > 0);
     const declines = stocks.filter((s) => s.chgPct < 0);
@@ -463,7 +488,7 @@ export function MarketView({ onBack }) {
   ];
   const funds = buildFundamentals();
   const altRows = buildAltRows();
-  const idxSig = buildSignal({ name: indexName, px: effIndex.px }, tick, enabled);
+  const idxSig = buildSignal({ name: indexName, px: effIndex.px }, tick, enabled, oiBias);
   const mockChart = useMemo(() => chartSeries(`${indexName}-${chartRange}`, px), [indexName, chartRange, px]);
   const chart = liveCandles || mockChart;
   const refreshBtn = (
@@ -926,7 +951,9 @@ export function MarketView({ onBack }) {
         {/* 12. FII/DII + 13. SENTIMENT */}
         <div className="[display:contents]">
           <TermPanel title="FII / DII Activity" id="fiidii-panel" className="order-10" collapsed={collapsed.fiidii} onToggle={() => togglePanel("fiidii")}
-            right={<span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
+            right={fiidii?.live
+              ? <span className="font-mono text-[9px] font-bold text-green-400" data-testid="fiidii-live-badge">NSE · {fiidii.date}</span>
+              : <span className="font-mono text-[9px] text-[#777]">DEMO DATA</span>}>
             <table className="w-full font-mono text-[10px]">
               <thead>
                 <tr className="border-b border-[#262626] text-[#999]">
@@ -936,18 +963,22 @@ export function MarketView({ onBack }) {
                 </tr>
               </thead>
               <tbody>
-                {[
+                {(fiidii?.live ? [
+                  ["FII Buy", fiidii.fii.buy, fiidii.prevFii?.buy], ["FII Sell", fiidii.fii.sell, fiidii.prevFii?.sell],
+                  ["FII Net", fiidii.fii.net, fiidii.prevFii?.net], ["DII Buy", fiidii.dii.buy, fiidii.prevDii?.buy],
+                  ["DII Sell", fiidii.dii.sell, fiidii.prevDii?.sell], ["DII Net", fiidii.dii.net, fiidii.prevDii?.net],
+                ] : [
                   ["FII Buy", 4820, 3960], ["FII Sell", 3910, 4420],
                   ["FII Net", 910, -460], ["DII Buy", 3240, 3510],
                   ["DII Sell", 2680, 2890], ["DII Net", 560, 620],
-                ].map(([l, t, y]) => (
+                ]).map(([l, t, y]) => (
                   <tr key={l} className="border-b border-[#1c1c1c]">
                     <td className={`px-2 py-0.5 ${l.includes("Net") ? "font-bold text-amber-400" : "text-[#c9c9c9]"}`}>{l}</td>
                     <td className={`px-2 py-0.5 text-right font-bold ${l.includes("Net") ? (t >= 0 ? "text-green-400" : "text-red-400") : "text-[#e5e5e5]"}`}>
-                      {l.includes("Net") && t >= 0 ? "+" : ""}{t.toLocaleString("en-IN")}
+                      {l.includes("Net") && t >= 0 ? "+" : ""}{Math.round(t).toLocaleString("en-IN")}
                     </td>
                     <td className={`px-2 py-0.5 text-right ${l.includes("Net") ? (y >= 0 ? "text-green-400" : "text-red-400") : "text-[#999]"}`}>
-                      {l.includes("Net") && y >= 0 ? "+" : ""}{y.toLocaleString("en-IN")}
+                      {y == null ? "—" : `${l.includes("Net") && y >= 0 ? "+" : ""}${Math.round(y).toLocaleString("en-IN")}`}
                     </td>
                   </tr>
                 ))}
@@ -987,7 +1018,7 @@ export function MarketView({ onBack }) {
             <Collapse open={!collapsed.inst}>
               <div className="grid max-h-[420px] grid-cols-1 gap-1 overflow-y-auto p-1 sm:grid-cols-2" data-lenis-prevent>
                 {instView.map((m) => {
-                  const sig = buildSignal(m, tick, enabled);
+                  const sig = buildSignal(m, tick, enabled, oiBias);
                   return (
                     <div key={m.name} role="button" tabIndex={0} data-testid={`market-instrument-${slug(m.name)}`}
                       onClick={() => setDetailStock({ sym: m.name, name: m.name, ltp: m.px.replace(/,/g, ""), chgPct: parseFloat(m.chg), volume: "2.4", oi: "—" })}
@@ -1257,6 +1288,7 @@ export function MarketView({ onBack }) {
         instrument={signalFor}
         tick={tick}
         live={live}
+        oiBias={oiBias}
         onToggleLive={() => setLive((l) => !l)}
         enabled={enabled}
         onToggleIndicator={toggleIndicator}

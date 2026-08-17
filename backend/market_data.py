@@ -110,6 +110,10 @@ class SmartMarket:
         self.futures = {}       # (name, exch) -> nearest-expiry FUT contract doc
         self.lock = threading.Lock()
         self._cache = {}
+        self.jwt_token = None
+        self.feed_token = None
+        self.ws_connected = False
+        self._ws_ticks = 0
 
     # ---------------- auth ----------------
     def _reason_from_error(self, exc):
@@ -139,6 +143,9 @@ class SmartMarket:
             self.login_error = msg or "SmartAPI session generation failed"
             raise RuntimeError(self.login_error)
         self.smart = smart
+        data = res.get("data") or {}
+        self.jwt_token = data.get("jwtToken")
+        self.feed_token = data.get("feedToken")
         self.session_ok = True
         self.session_reason = "ok"
         self.login_error = None
@@ -315,61 +322,110 @@ class SmartMarket:
         except Exception as exc:
             logger.debug("ws msg handler error: %s", exc)
 
+    def _ws_tokens_payload(self):
+        exch_map = {"NSE": 1, "NFO": 2, "BSE": 3, "BFO": 4, "MCX": 5}
+        groups = {}
+        for t in self.index_tokens.values():
+            groups.setdefault(exch_map.get(t["exch"], 1), []).append(str(t["token"]))
+        for info in self.equity.values():
+            groups.setdefault(1, []).append(str(info["token"]))
+        for (name, exch), d in self.futures.items():
+            groups.setdefault(exch_map.get(exch, 1), []).append(str(d["token"]))
+        for o in self.options:
+            groups.setdefault(2, []).append(str(o["token"]))
+        return [{"exchangeType": k, "tokens": v} for k, v in groups.items()]
+
+    def _on_ws_tick(self, msg):
+        """Normalize a SmartWebSocketV2 SnapQuote tick into REST-quote shape and cache it."""
+        try:
+            if not isinstance(msg, dict):
+                return
+            tok = str(msg.get("token") or "")
+            if not tok:
+                return
+            def p(key):
+                v = msg.get(key)
+                return (v / 100.0) if isinstance(v, (int, float)) else 0
+            fresh = {
+                "symbolToken": tok,
+                "ltp": p("last_traded_price"),
+                "open": p("open_price_of_the_day"),
+                "high": p("high_price_of_the_day"),
+                "low": p("low_price_of_the_day"),
+                "close": p("closed_price"),
+                "tradeVolume": msg.get("volume_trade_for_the_day") or msg.get("total_traded_volume") or 0,
+                "opnInterest": msg.get("open_interest") or 0,
+                "52WeekHigh": p("52_week_high_price"),
+                "52WeekLow": p("52_week_low_price"),
+                "_ts": time.time(),
+            }
+            with self.lock:
+                prev = self._stream_cache.get(tok, {})
+                merged = dict(prev)
+                for k, v in fresh.items():
+                    if v or k in ("_ts", "symbolToken"):
+                        merged[k] = v
+                self._stream_cache[tok] = merged
+        except Exception:
+            pass
+
     def start_websocket(self):
-        """Attempt to start SmartAPI SDK websocket; if SDK doesn't expose websocket helpers, raise.
-        This method is best-effort: it will log and raise if not available, leaving poller as fallback.
-        """
-        if getattr(self, "_ws_thread", None):
+        """Real SmartAPI push feed (SmartWebSocketV2, SnapQuote mode). Self-reconnecting;
+        falls back to the REST poller if the feed cannot be established."""
+        if getattr(self, "_ws_started", False):
             return
         if not self._ready():
             raise RuntimeError("SmartAPI not ready for websocket")
-        # Try common SDK entry points for websocket support
-        try:
-            # prefer SDK's start_websocket or startWebSocket if present
-            if hasattr(self.smart, "start_websocket"):
-                # some SDKs expect a callback
+        from SmartApi.smartWebSocketV2 import SmartWebSocketV2
+
+        def _run():
+            backoff = 5
+            failures = 0
+            while True:
                 try:
-                    self.smart.start_websocket(self._ws_message_handler)
-                    logger.info("SmartAPI SDK start_websocket invoked")
-                    self._ws_thread = True
-                    return
-                except TypeError:
-                    # try without args
-                    self.smart.start_websocket()
-                    logger.info("SmartAPI SDK start_websocket invoked without callback")
-                    self._ws_thread = True
-                    return
-            if hasattr(self.smart, "startStream"):
-                # experimental
-                self.smart.startStream(self._ws_message_handler)
-                logger.info("SmartAPI SDK startStream invoked")
-                self._ws_thread = True
-                return
-            # fallback: check for websocket URL provider
-            if hasattr(self.smart, "get_websocket_url"):
-                url = self.smart.get_websocket_url()
-                # attempt to open a websocket using websocket-client if available
-                try:
-                    import websocket
-                    def _run_ws():
-                        def _on_message(ws, m):
-                            self._ws_message_handler(m)
-                        def _on_error(ws, e):
-                            logger.warning("websocket error: %s", e)
-                        def _on_close(ws):
-                            logger.info("websocket closed")
-                        ws = websocket.WebSocketApp(url, on_message=_on_message, on_error=_on_error, on_close=_on_close)
-                        ws.run_forever()
-                    self._ws_thread = threading.Thread(target=_run_ws, daemon=True)
-                    self._ws_thread.start()
-                    logger.info("Started websocket-client to %s", url)
-                    return
-                except Exception:
-                    logger.warning("websocket-client not available or failed to connect")
-            raise RuntimeError("No websocket support available in SDK")
-        except Exception as exc:
-            logger.warning("start_websocket failed: %s", exc)
-            raise
+                    sws = SmartWebSocketV2(self.jwt_token, self.api_key, self.client_id, self.feed_token)
+
+                    def on_open(ws):
+                        self.ws_connected = True
+                        payload = self._ws_tokens_payload()
+                        logger.info("SmartWebSocketV2 connected; subscribing %d token groups", len(payload))
+                        sws.subscribe("terminal", 3, payload)
+
+                    def on_data(ws, msg):
+                        self._ws_ticks += 1
+                        if self._ws_ticks <= 2:
+                            logger.info("ws raw msg FULL: %s", str(msg)[:900])
+                        self._on_ws_tick(msg)
+
+                    def on_error(ws, err):
+                        logger.warning("ws error: %s", str(err)[:150])
+
+                    def on_close(ws, *args):
+                        self.ws_connected = False
+                        logger.warning("SmartWebSocketV2 closed")
+
+                    sws.on_open = on_open
+                    sws.on_data = on_data
+                    sws.on_error = on_error
+                    sws.on_close = on_close
+                    sws.connect()  # blocks until the socket dies
+                    self.ws_connected = False
+                    failures += 1
+                except Exception as exc:
+                    self.ws_connected = False
+                    failures += 1
+                    logger.warning("ws run failed (%s); retry in %ds", type(exc).__name__, backoff)
+                if failures >= 3:
+                    try:
+                        self.start_streaming()  # REST poller fallback (guarded, no double-start)
+                    except Exception:
+                        pass
+                time.sleep(backoff)
+                backoff = min(60, backoff * 2)
+
+        self._ws_started = True
+        self._ws_thread = threading.Thread(target=_run, daemon=True)
+        self._ws_thread.start()
 
     def _stream_loop(self):
         logger.info("Starting market poller thread")
@@ -377,6 +433,9 @@ class SmartMarket:
             try:
                 if not self._ready():
                     time.sleep(3)
+                    continue
+                if self.ws_connected:
+                    time.sleep(10)  # websocket push is feeding the cache; poller idles to save rate limits
                     continue
                 # gather tokens to poll: index tokens + equity tokens + option tokens
                 by_exch = {}
@@ -407,7 +466,7 @@ class SmartMarket:
                         tok = str(q.get("symbolToken") or q.get("symbolTokenString") or q.get("token"))
                         if tok:
                             with self.lock:
-                                self._stream_cache[tok] = q
+                                self._stream_cache[tok] = {**q, "_ts": time.time()}
                     except Exception:
                         continue
             except Exception as exc:
@@ -432,20 +491,22 @@ class SmartMarket:
         return bool(self.smart) and self.master_loaded
 
     def _market_data(self, exchange_tokens):
-        # If we have a streaming cache populated by the poller, use it to build a response
+        # Serve from the streaming cache (websocket/poller) only when it covers every
+        # requested token with fresh data; otherwise fall through to a direct REST call.
         try:
             if hasattr(self, "_stream_cache") and self._stream_cache:
                 out = []
-                # exchange_tokens is a dict like {"NSE": [token,...], "NFO": [...]}
+                total = 0
+                stale_ok = not self._market_open()
                 for exch, toks in (exchange_tokens or {}).items():
                     for t in toks:
+                        total += 1
                         tok = str(t)
-                        q = None
                         with self.lock:
                             q = self._stream_cache.get(tok)
-                        if q:
+                        if q and (stale_ok or time.time() - q.get("_ts", 0) < 20):
                             out.append(q)
-                if out:
+                if total and len(out) == total:
                     return out
         except Exception:
             pass
@@ -453,7 +514,7 @@ class SmartMarket:
         res = self._call(self.smart.getMarketData, "FULL", exchange_tokens)
         if not res or not res.get("status"):
             raise RuntimeError("getMarketData returned no data")
-        return res["data"].get("fetched", [])
+        return (res.get("data") or {}).get("fetched", [])
 
     # ---------------- snapshots ----------------
     def index_quotes(self):
@@ -664,6 +725,7 @@ class SmartMarket:
             "optionContracts": len(self.options),
             "optionExpiry": self.opt_expiry,
             "marketOpen": self._market_open(),
+            "ws": {"connected": self.ws_connected, "ticks": self._ws_ticks},
         }
 
 

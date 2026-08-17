@@ -436,7 +436,7 @@ export const playAlertBeep = () => {
 
 const INDICATOR_NAMES = ["RSI (14)", "MACD", "EMA 9/21 Cross", "VWAP", "Supertrend"];
 
-export const buildSignal = (m, tick = 0, enabled = [true, true, true, true, true]) => {
+export const buildSignal = (m, tick = 0, enabled = [true, true, true, true, true], oiBias = 0) => {
   const h = hashOf(m.name) + tick * 7;
   const num = parseFloat(m.px.replace(/,/g, ""));
   const fmt = (n) => n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
@@ -448,20 +448,24 @@ export const buildSignal = (m, tick = 0, enabled = [true, true, true, true, true
   const list = active.length ? active : all;
   const bull = list.filter((x) => x.state === "Bullish").length;
   const bear = list.filter((x) => x.state === "Bearish").length;
-  const buy = bull >= bear;
+  const buyRaw = bull >= bear;
+  // With live OI bias: direction follows the real Put−Call OI skew (PCR > 1 = puts dominate = CALL bias),
+  // with a small per-instrument noise factor so cards don't flip in perfect unison.
+  const buy = oiBias ? (oiBias > 0 ? (h % 100) >= 18 : (h % 100) < 18) : buyRaw;
   return {
     dir: buy ? "BUY CALL" : "BUY PUT",
     buy,
-    confidence: Math.round(55 + (Math.max(bull, bear) / list.length) * 40),
+    confidence: Math.min(98, Math.round(55 + (Math.max(bull, bear) / list.length) * 40) + (oiBias ? 3 : 0)),
     entry: fmt(num),
     target: fmt(buy ? num * 1.012 : num * 0.988),
     stop: fmt(buy ? num * 0.994 : num * 1.006),
     indicators: list,
+    oiInfluenced: !!oiBias,
   };
 };
 
-export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, onToggleIndicator, onRefresh, onClose, onExecuteTrade }) {
-  const sig = instrument ? buildSignal(instrument, tick, enabled) : null;
+export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, onToggleIndicator, onRefresh, onClose, onExecuteTrade, oiBias = 0 }) {
+  const sig = instrument ? buildSignal(instrument, tick, enabled, oiBias) : null;
   const [quantity, setQuantity] = useState(25);
 
   useEffect(() => {
@@ -639,8 +643,9 @@ export function SignalDrawer({ instrument, tick, live, onToggleLive, enabled, on
             </div>
 
             <p className="mt-5 text-[11px] leading-relaxed text-slate">
-              Test model only — signals are randomly generated demo data and do not use real market feeds.
-              This is not investment advice.
+              {sig.oiInfluenced
+                ? "Test model — direction is biased by the LIVE Put−Call OI skew (PCR) from Angel One SmartAPI; indicator votes remain simulated. Not investment advice."
+                : "Test model only — signals are randomly generated demo data and do not use real market feeds. This is not investment advice."}
             </p>
           </motion.aside>
       )}
