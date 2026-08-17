@@ -11,6 +11,8 @@ import { MarketView } from "../views/terminal";
 import { PlanView, TierView } from "../views/PanelViews";
 import ProDashboard from "../views/ProDashboard";
 import { Reveal } from "../landing/Reveal";
+import AuthModal from "../auth/AuthModal";
+import { getBalance as getWalletBalance } from "@/mock/mockWallet";
 
 const MENU = [
   { icon: LayoutDashboard, label: "Dashboard", view: "panel" },
@@ -34,7 +36,7 @@ const PANEL_STATS = [
   { label: "Available Margin", value: "₹18,400", tone: "dark" },
 ];
 
-const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, prefix }) => (
+const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, prefix, username, onSignIn, onSignUp, onLogout, aiEnabled, onToggleAI }) => (
   <div className="flex h-full flex-col">
     <div className="flex items-center gap-2.5 px-5 pt-6">
       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-signal">
@@ -50,9 +52,13 @@ const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, pref
 
     <div className="mx-4 mt-5 rounded-xl border border-edge bg-mist/60 p-3.5" data-testid={`${prefix}-status`}>
       <div className="flex items-center justify-between">
-        <span className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white ${live ? "bg-signal" : "bg-ember"}`}>
+        <button
+          onClick={() => { onModule("settings"); onClose?.(); }}
+          title="Complete account steps"
+          className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white ${live ? "bg-signal" : "bg-ember"} cursor-pointer`}
+        >
           {live ? "Live" : "Not Live"}
-        </span>
+        </button>
         <span className="font-mono text-[10px] text-slate">({stepsDone}/4)</span>
       </div>
       <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-edge">
@@ -92,13 +98,41 @@ const PanelBody = ({ module, onModule, onWebsite, stepsDone, live, onClose, pref
       >
         <Globe className="h-4 w-4" /> View Website
       </button>
-      <button
-        data-testid={`${prefix}-logout`}
-        onClick={() => toast.info("Logged out", { description: "Demo only — there is no real session." })}
-        className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-xs font-semibold text-slate transition-colors hover:text-ink"
-      >
-        <LogOut className="h-3.5 w-3.5" /> Logout
-      </button>
+      {username ? (
+        <button
+          data-testid={`${prefix}-logout`}
+          onClick={onLogout}
+          className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-xs font-semibold text-slate transition-colors hover:text-ink"
+        >
+          <LogOut className="h-3.5 w-3.5" /> Logout
+        </button>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            data-testid={`${prefix}-signin`}
+            onClick={onSignIn}
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-edge py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-mist"
+          >
+            Sign in
+          </button>
+          <button
+            data-testid={`${prefix}-signup`}
+            onClick={onSignUp}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-ember py-2.5 text-xs font-semibold text-white transition-all hover:brightness-110 active:scale-95"
+          >
+            Sign up
+          </button>
+        </div>
+      )}
+      <div className="mt-2">
+        <button
+          onClick={onToggleAI}
+          data-testid={`${prefix}-ai-toggle`}
+          className={`w-full inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${aiEnabled ? "bg-signal text-white" : "border border-edge bg-white text-slate hover:bg-mist"}`}
+        >
+          <Activity className="h-3.5 w-3.5" /> {aiEnabled ? "AI Enabled" : "AI Disabled"}
+        </button>
+      </div>
     </div>
   </div>
 );
@@ -265,6 +299,15 @@ const PanelHome = ({ stepsDone, completeStep, live, onModule }) => (
 export default function UserPanel({ module, onModule, onWebsite }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [username, setUsername] = useState(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+  const [walletBalance, setWalletBalance] = useState(() => {
+    try {
+      return getWalletBalance();
+    } catch (e) {
+      return 4250.0;
+    }
+  });
   const [stepsDone, setStepsDone] = useState(2);
   const live = stepsDone === 4;
   const crumb = MENU.find((m) => m.view === module)?.label || "Dashboard";
@@ -284,10 +327,71 @@ export default function UserPanel({ module, onModule, onWebsite }) {
     }
   }, []);
 
+  useEffect(() => {
+    const onUpdate = (e) => {
+      try {
+        const b = (e && e.detail && typeof e.detail.balance !== "undefined") ? e.detail.balance : getWalletBalance();
+        setWalletBalance(Number(b));
+      } catch (err) {}
+    };
+    window.addEventListener("wallet:updated", onUpdate);
+    return () => window.removeEventListener("wallet:updated", onUpdate);
+  }, []);
+
+  const [aiEnabled, setAiEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("ai_enabled") === "1";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleAI = () => {
+    const next = !aiEnabled;
+    try {
+      localStorage.setItem("ai_enabled", next ? "1" : "0");
+    } catch (e) {}
+    setAiEnabled(next);
+    toast.success(next ? "AI notifications enabled" : "AI notifications disabled", { description: next ? "Traders will receive AI alerts." : "AI alerts turned off." });
+  };
+
+  const openAuth = (mode) => {
+    setAuthMode(mode);
+    setAuthOpen(true);
+  };
+
+  const handleAuth = (name) => {
+    setUsername(name);
+    setAuthOpen(false);
+  };
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("username");
+      localStorage.removeItem("auth_email");
+    } catch (e) {}
+    setUsername(null);
+    toast.info("Logged out", { description: "Demo only — there is no real session." });
+  };
+
   return (
     <div data-testid="user-panel">
+      <AuthModal open={authOpen} mode={authMode} onOpenChange={setAuthOpen} onAuth={handleAuth} />
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-edge bg-white lg:block" data-testid="panel-sidebar">
-        <PanelBody module={module} onModule={onModule} onWebsite={onWebsite} stepsDone={stepsDone} live={live} prefix="panel-nav" />
+        <PanelBody
+          module={module}
+          onModule={onModule}
+          onWebsite={onWebsite}
+          stepsDone={stepsDone}
+          live={live}
+          prefix="panel-nav"
+          username={username}
+          onSignIn={() => openAuth("login")}
+          onSignUp={() => openAuth("signup")}
+          onLogout={handleLogout}
+          aiEnabled={aiEnabled}
+          onToggleAI={toggleAI}
+        />
       </aside>
 
       <AnimatePresence>
@@ -312,7 +416,21 @@ export default function UserPanel({ module, onModule, onWebsite }) {
               >
                 <X className="h-4 w-4" />
               </button>
-              <PanelBody module={module} onModule={onModule} onWebsite={onWebsite} stepsDone={stepsDone} live={live} onClose={() => setMenuOpen(false)} prefix="panel-mobile-nav" />
+              <PanelBody
+                module={module}
+                onModule={onModule}
+                onWebsite={onWebsite}
+                stepsDone={stepsDone}
+                live={live}
+                onClose={() => setMenuOpen(false)}
+                prefix="panel-mobile-nav"
+                username={username}
+                onSignIn={() => { setMenuOpen(false); openAuth("login"); }}
+                onSignUp={() => { setMenuOpen(false); openAuth("signup"); }}
+                onLogout={() => { setMenuOpen(false); handleLogout(); }}
+                aiEnabled={aiEnabled}
+                onToggleAI={(e) => { setMenuOpen(false); toggleAI(); }}
+              />
             </motion.aside>
           </>
         )}
@@ -339,11 +457,11 @@ export default function UserPanel({ module, onModule, onWebsite }) {
           <div className="flex items-center gap-3">
             <span className="hidden items-center gap-2 rounded-full border border-edge bg-white px-3.5 py-1.5 sm:flex" data-testid="panel-wallet-chip">
               <Wallet className="h-3.5 w-3.5 text-slate" />
-              <span className="font-mono text-sm font-semibold text-signal">₹4,250.00</span>
+              <span className="font-mono text-sm font-semibold text-signal">₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-signal px-3.5 py-1.5 font-mono text-xs font-bold text-white" data-testid="panel-enabled-badge">
-              <Activity className="h-3.5 w-3.5" /> Enabled
-            </span>
+            <button onClick={toggleAI} title="Toggle AI notifications" className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-mono text-xs font-bold ${aiEnabled ? "bg-signal text-white" : "border border-edge bg-white text-slate"}`} data-testid="panel-enabled-badge">
+              <Activity className="h-3.5 w-3.5" /> {aiEnabled ? "AI Enabled" : "AI Off"}
+            </button>
             {/* Avatar button removed; greeting is shown on the top-left */}
           </div>
         </div>
@@ -358,7 +476,15 @@ export default function UserPanel({ module, onModule, onWebsite }) {
           {module === "broker" && <BrokerView onBack={() => onModule("panel")} />}
           {module === "wallet" && <WalletView onBack={() => onModule("panel")} />}
           {module === "transactions" && <TransactionsView onBack={() => onModule("panel")} />}
-          {module === "settings" && <SettingsView onBack={() => onModule("panel")} />}
+          {module === "settings" && (
+            <SettingsView
+              onBack={() => onModule("panel")}
+              stepsDone={stepsDone}
+              setStepsDone={setStepsDone}
+              aiEnabled={aiEnabled}
+              setAiEnabled={(v) => { setAiEnabled(v); try { localStorage.setItem("ai_enabled", v ? "1" : "0"); } catch (e) {} }}
+            />
+          )}
         </main>
       </div>
     </div>

@@ -5,6 +5,7 @@ import {
   Plug, Unplug, Save,
 } from "lucide-react";
 import { Reveal } from "../landing/Reveal";
+import { getBalance, addBalance } from "@/mock/mockWallet";
 import { Switch } from "@/components/ui/switch";
 
 export const Shell = ({ title, desc, onBack, testid, children }) => (
@@ -40,6 +41,8 @@ const BROKERS = [
   { name: "TradePro X", latency: "45ms", region: "NSE · MCX" },
   { name: "StockEdge Demo", latency: "52ms", region: "BSE · MCX" },
 ];
+
+const STEP_LABELS = ["Select Broker", "Activation Fee", "Broker Validation", "KYC Verification"];
 
 export function BrokerView({ onBack }) {
   const [connected, setConnected] = useState({ AlphaBrokr: true });
@@ -94,10 +97,42 @@ const WALLET_ACTIVITY = [
 ];
 
 export function WalletView({ onBack }) {
-  const [balance, setBalance] = useState(4250.0);
+  const [balance, setBalance] = useState(() => getBalance());
+  const [customAmt, setCustomAmt] = useState("");
   const deposit = (amt) => {
-    setBalance((b) => +(b + amt).toFixed(2));
+    const next = addBalance(amt);
+    setBalance(next);
     toast.success(`₹${amt.toLocaleString("en-IN")} added to wallet`, { description: "Demo only — no real money moved." });
+  };
+  const withdraw = (amt) => {
+    const cur = getBalance();
+    if (amt > cur) {
+      toast.error("Insufficient balance for withdrawal");
+      return;
+    }
+    const next = addBalance(-amt);
+    setBalance(next);
+    toast.success(`₹${amt.toLocaleString("en-IN")} withdrawn`, { description: "Demo only — no real money moved." });
+  };
+
+  const depositCustom = () => {
+    const amt = parseFloat(customAmt);
+    if (isNaN(amt) || amt <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    deposit(amt);
+    setCustomAmt("");
+  };
+
+  const withdrawCustom = () => {
+    const amt = parseFloat(customAmt);
+    if (isNaN(amt) || amt <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    withdraw(amt);
+    setCustomAmt("");
   };
 
   return (
@@ -128,9 +163,35 @@ export function WalletView({ onBack }) {
                 <ArrowDownToLine className="h-4 w-4" /> Deposit
               </button>
               <button data-testid="wallet-withdraw-button"
-                onClick={() => toast.info("Withdrawals are disabled in this demo prototype")}
+                onClick={() => withdraw(1000)}
                 className="inline-flex items-center gap-2 rounded-full border border-paper/20 px-6 py-3 text-sm font-semibold transition-colors hover:bg-paper/10 active:scale-95">
                 <ArrowUpFromLine className="h-4 w-4" /> Withdraw
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <input
+                data-testid="wallet-custom-input"
+                type="number"
+                min="0"
+                step="0.01"
+                value={customAmt}
+                onChange={(e) => setCustomAmt(e.target.value)}
+                placeholder="Enter amount"
+                className="w-40 rounded-xl border border-edge bg-paper px-3 py-2 text-sm outline-none transition-colors focus:border-ember"
+              />
+              <button
+                data-testid="wallet-custom-deposit-button"
+                onClick={depositCustom}
+                className="inline-flex items-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95"
+              >
+                Deposit
+              </button>
+              <button
+                data-testid="wallet-custom-withdraw-button"
+                onClick={withdrawCustom}
+                className="inline-flex items-center gap-2 rounded-full border border-paper/20 px-4 py-2 text-sm font-semibold transition-colors hover:bg-paper/10 active:scale-95"
+              >
+                Withdraw
               </button>
             </div>
           </div>
@@ -225,8 +286,25 @@ const TOGGLES = [
   { key: "squareoff", label: "Auto Square-Off", desc: "Close intraday positions at 15:15", on: true },
 ];
 
-export function SettingsView({ onBack }) {
+export function SettingsView({ onBack, stepsDone, setStepsDone, aiEnabled, setAiEnabled }) {
   const [flags, setFlags] = useState(Object.fromEntries(TOGGLES.map((t) => [t.key, t.on])));
+  const [localSteps, setLocalSteps] = useState(() => Array.from({ length: 4 }, (_, i) => i < (stepsDone || 0)));
+
+  const toggleStep = (i) => {
+    setLocalSteps((s) => {
+      const next = s.slice();
+      if (!next[i]) {
+        // mark this and all previous as done
+        for (let k = 0; k <= i; k++) next[k] = true;
+      } else {
+        // unmark this and all following
+        for (let k = i; k < next.length; k++) next[k] = false;
+      }
+      const count = next.filter(Boolean).length;
+      setStepsDone?.(count);
+      return next;
+    });
+  };
 
   return (
     <Shell testid="settings-view" onBack={onBack}
@@ -237,6 +315,17 @@ export function SettingsView({ onBack }) {
           <div className="rounded-2xl border border-edge bg-white p-6">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Notifications & Security</p>
             <div className="mt-5 space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold">AI Notifications</p>
+                  <p className="text-xs text-slate">Receive AI-based trading alerts (demo).</p>
+                </div>
+                <Switch
+                  data-testid={`settings-toggle-ai`}
+                  checked={!!aiEnabled}
+                  onCheckedChange={(v) => { setAiEnabled?.(v); toast.info(v ? "AI notifications enabled" : "AI notifications disabled"); }}
+                />
+              </div>
               {TOGGLES.map((t) => (
                 <div key={t.key} className="flex items-center justify-between gap-4">
                   <div>
@@ -248,6 +337,28 @@ export function SettingsView({ onBack }) {
                     checked={flags[t.key]}
                     onCheckedChange={(v) => setFlags((f) => ({ ...f, [t.key]: v }))}
                   />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+        <Reveal delay={0.12}>
+          <div className="rounded-2xl border border-edge bg-white p-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate">Complete Profile Steps</p>
+            <div className="mt-4 space-y-3">
+              {STEP_LABELS.map((label, i) => (
+                <div key={label} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{label}</p>
+                    <p className="text-xs text-slate">{i + 1 === (stepsDone || 0) ? "Next step" : ""}</p>
+                  </div>
+                  <button
+                    data-testid={`settings-step-${i}`}
+                    onClick={() => toggleStep(i)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${localSteps[i] ? "bg-signal text-white" : "border border-edge bg-white text-slate hover:bg-mist"}`}
+                  >
+                    {localSteps[i] ? "Done" : "Mark Done"}
+                  </button>
                 </div>
               ))}
             </div>
@@ -279,6 +390,20 @@ export function SettingsView({ onBack }) {
           onClick={() => toast.success("Settings saved", { description: "Demo only — preferences were not persisted." })}
           className="mt-8 inline-flex items-center gap-2 rounded-full bg-ember px-8 py-3.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95">
           <Save className="h-4 w-4" /> Save Settings
+        </button>
+      </Reveal>
+      <Reveal delay={0.18}>
+        <button data-testid="settings-complete-steps-button"
+          onClick={() => {
+            if (setStepsDone) {
+              setStepsDone(4);
+              toast.success("Account setup completed", { description: "You can now start trading (demo)." });
+            } else {
+              toast.info("Complete steps from the dashboard");
+            }
+          }}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-edge px-6 py-3 text-sm font-semibold transition-colors hover:bg-mist">
+          Complete All Steps & Start Trading
         </button>
       </Reveal>
     </Shell>
