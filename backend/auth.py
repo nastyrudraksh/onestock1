@@ -22,8 +22,6 @@ JWT_ALGORITHM = "HS256"
 ACCESS_MIN = 15
 REFRESH_DAYS = 7
 SESSION_DAYS = 7
-LOCK_AFTER = 5
-LOCK_MINUTES = 15
 
 router = APIRouter(prefix="/api/auth")
 _db = None
@@ -147,24 +145,6 @@ async def require_admin(request: Request) -> dict:
     return user
 
 
-# ---------------- brute force ----------------
-async def _check_lock(identifier: str):
-    doc = await _db.login_attempts.find_one({"_id": identifier})
-    if doc and doc.get("count", 0) >= LOCK_AFTER:
-        since = doc.get("last")
-        if since and isinstance(since, datetime):
-            since = since if since.tzinfo else since.replace(tzinfo=timezone.utc)
-            if datetime.now(timezone.utc) - since < timedelta(minutes=LOCK_MINUTES):
-                raise HTTPException(status_code=429, detail="Too many failed attempts. Try again in 15 minutes.")
-
-
-async def _record_fail(identifier: str):
-    await _db.login_attempts.update_one(
-        {"_id": identifier},
-        {"$inc": {"count": 1}, "$set": {"last": datetime.now(timezone.utc)}},
-        upsert=True)
-
-
 # ---------------- email/password endpoints ----------------
 @router.post("/register")
 async def register(body: RegisterIn, response: Response):
@@ -183,16 +163,9 @@ async def register(body: RegisterIn, response: Response):
 @router.post("/login")
 async def login(body: LoginIn, request: Request, response: Response):
     email = body.email.strip().lower()
-    # key the lockout by account email: behind the k8s ingress request.client.host is a
-    # rotating internal pod IP, and X-Forwarded-For is client-spoofable — email is the
-    # only reliable key (5 failed attempts -> 15 min lock on the account)
-    identifier = email
-    await _check_lock(identifier)
     user = await _db.users.find_one({"email": email})
     if not user or not user.get("password_hash") or not verify_password(body.password, user["password_hash"]):
-        await _record_fail(identifier)
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    await _db.login_attempts.delete_one({"_id": identifier})
     set_jwt_cookies(response, user["user_id"], email)
     return public_user(user)
 
@@ -334,7 +307,6 @@ async def auth_startup(db):
     init_auth(db)
     await db.users.create_index("email", unique=True)
     await db.user_sessions.create_index("session_token")
-    await db.login_attempts.create_index("identifier")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     admin_email = os.environ["ADMIN_EMAIL"].lower()
     admin_password = os.environ["ADMIN_PASSWORD"]

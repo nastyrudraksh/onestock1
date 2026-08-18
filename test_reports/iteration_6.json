@@ -1,0 +1,26 @@
+{
+  "summary": "Verified the reported 'Failed to fetch' + lockout bug is fully resolved on preview URL. (1) Admin sign-in E2E works: Get Started -> modal -> admin@onestock.in / OneStock#Admin2026 -> lands on panel with 'Hello, Admin' greeting, 'Welcome back, Admin' toast, and Users nav visible. (2) Same-origin proof captured via playwright request listener — the browser sent POST to https://tradesense-hub-1.preview.emergentagent.com/api/auth/login (page origin), NOT the absolute REACT_APP_BACKEND_URL. All /api/auth/* traffic (me, refresh, login) went to the page origin. (3) Lockout fully removed: registered fresh uitest_ account, 6 consecutive wrong passwords all returned 401 {'detail':'Invalid email or password'} (never 429/lockout), then correct password immediately returned 200. Repeated with existing test@onestock.in: 7 wrong + 1 correct = 7x401 then 200. (4) Site health: landing page loads (no Invalid Host header), market terminal shows Live badge with real NIFTY ticker data while authenticated. Google button code path unchanged (redirects to auth.emergentagent.com). Throwaway account purged from Mongo.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard (initial mount)", "issues": ["Recharts ResponsiveContainer still warns width(-1)/height(-1) during first paint — cosmetic, carried over from iteration_5."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_auth_flows.py"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "apiFetch() content-type guard is clever but treats any non-JSON 200 as 'not-an-api-host' — if backend ever returns 204/empty body for a valid auth endpoint (e.g. logout could return empty), the fallback would double-fire the request against the absolute URL. Consider `if (r.status !== 204 && !ct.includes('application/json'))` OR check request path allowlist.",
+    "AuthContext /api/auth/me returns 401 for unauthenticated visitors -> logs 4 red 'Failed to load resource: 401' errors in console on every landing page load. Consider a HEAD probe or swallowing 401 without a network-log error.",
+    "Lockout removal per user request is done, but there is now zero brute-force protection on /api/auth/login. If not intentional long-term, consider IP-based rate limiting (fastapi-limiter/slowapi) that never blocks the user's own email."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@onestock.in / OneStock#Admin2026 ; test@onestock.in / Test@12345 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created 1 throwaway uitest_<ts>@example.com account for no-lockout verification; purged after test (db.users.delete_many({email:/^(uitest_|e2e_|lockcheck_)/}) -> 1 deleted).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The 'Failed to fetch' bug reported by user was root-caused to cross-origin credentialed POST from an iframe/preview origin different from REACT_APP_BACKEND_URL. Fix in /app/frontend/src/auth/AuthContext.jsx (apiFetch() uses relative /api first with content-type guard + TypeError fallback to absolute URL) works — verified via playwright request listener that login goes to page origin. Lockout code has been removed from /app/backend/auth.py per user request; do NOT re-add without explicit approval. Do not restart supervisor unless installing deps — two outages today from lost DANGEROUSLY_DISABLE_HOST_CHECK env (now persisted in /app/frontend/.env).",
+  "rca of the issue": "User's browser POST /api/auth/login was going to the absolute REACT_APP_BACKEND_URL from a different-origin preview URL. Cloudflare edge answered OPTIONS preflight with `access-control-allow-origin: *` and NO `access-control-allow-credentials: true`; browser refused the credentialed request -> TypeError('Failed to fetch') surfaced to UI as raw text. Fix: apiFetch() tries relative /api first (same-origin, no preflight/credentials issue) and only falls back to absolute URL on TypeError. Verified: playwright captured login URL = https://tradesense-hub-1.preview.emergentagent.com/api/auth/login (page origin). Additionally, user asked to remove the 5-attempt lockout — _check_lock/_record_fail deleted from backend/auth.py; verified 7 consecutive 401s never trigger 429."
+}
