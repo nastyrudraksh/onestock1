@@ -19,7 +19,7 @@ import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
 import UserPanel from "@/components/panel/UserPanel";
 import AuthModal from "@/components/auth/AuthModal";
-import { AuthProvider, useAuth } from "@/auth/AuthContext";
+import { AuthProvider, useAuth, friendlyAuthError } from "@/auth/AuthContext";
 import { scrollToSection } from "@/lib/scroll";
 import { Loader2 } from "lucide-react";
 
@@ -40,7 +40,7 @@ function AuthCallback({ onDone }) {
       })
       .catch((err) => {
         window.history.replaceState(null, "", window.location.pathname);
-        toast.error(err.message || "Google sign-in failed");
+        toast.error(friendlyAuthError(err));
         onDone(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps

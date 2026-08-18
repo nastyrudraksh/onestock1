@@ -12,6 +12,13 @@ export const formatApiErrorDetail = (detail) => {
   return String(detail);
 };
 
+// Network-level failures (server restarting / unreachable) throw TypeError("Failed to fetch") —
+// translate that into something a human understands instead of raw browser jargon.
+export const friendlyAuthError = (err) =>
+  err?.message === "Failed to fetch"
+    ? "Cannot reach the server right now — it may be restarting. Please wait a few seconds and try again."
+    : err?.message || "Authentication failed";
+
 export function AuthProvider({ children }) {
   // undefined = still checking, null = signed out, object = signed in
   const [user, setUser] = useState(undefined);

@@ -1,0 +1,38 @@
+{
+  "summary": "Frontend-only verification of the reported 'Failed to fetch' login bug fix. All 6 requested flows pass on the preview URL. The friendly network-error message is shown correctly (no raw 'Failed to fetch' leak), modal stays open, and recovery in the same modal (after unroute) succeeds without page reload. Regression flows (test-user login, admin login with Users nav visible, wrong-password error, live market terminal, new-user registration) all green.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard (Recharts)", "issues": ["Recurring console warning 'The width(-1) and height(-1) of chart should be greater than 0' — cosmetic, same as previous iteration; add minWidth/minHeight to Recharts ResponsiveContainer to silence."]}
+    ]
+  },
+  "test_results": {
+    "1_login_test_user (reported bug)": "PASS — greeting 'Hello, Test User' appears; the 'Failed to fetch' scenario no longer reproduces under normal conditions.",
+    "2_register_new_account": "PASS — signup lands in panel with greeting 'Hello, UI Reg User' (email uitest_reg_1787030328@onestock.in).",
+    "3_friendly_network_error": "PASS — with page.route abort on /api/auth/login, auth-error shows exactly 'Cannot reach the server right now — it may be restarting. Please wait a few seconds and try again.'; NO 'Failed to fetch' leak; modal stays open.",
+    "4_recovery_same_modal": "PASS — after page.unroute the same submit succeeds and lands in panel (no reload).",
+    "5a_admin_login": "PASS — greeting 'Hello, Admin', ADMIN badge on user chip, Users nav item rendered in sidebar (verified visually + /me returns role=admin).",
+    "5b_wrong_password": "PASS — auth-error shows 'Invalid email or password'.",
+    "5c_market_terminal_authenticated": "PASS — Market Snapshot with LIVE badge and NIFTY/SENSEX/BANK NIFTY/FINNIFTY quotes renders while authenticated."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Nit, carry-over) Silence Recharts 'width(-1) height(-1)' warnings on Dashboard by giving ResponsiveContainer a minWidth/minHeight."
+  ],
+  "critical_code_review_comments": [
+    "friendlyAuthError implementation correctly maps TypeError('Failed to fetch') and net::ERR_* / AbortError to the user-visible copy; verified end-to-end via route.abort simulation.",
+    "AuthModal keeps the dialog open on error and clears the error state on retry — good UX for the transient outage scenario reported by the user.",
+    "AuthContext.login sets user state synchronously from the login response (includes role) so the panel gates render immediately without a second /me round-trip — no race observed for admin nav.",
+    "Note: my earlier test used data-testid 'desktop-admin-users' which returned count=0 while the 'Users' menu item is clearly rendered — the prefix constant used by the sidebar for desktop may differ from 'desktop'; NOT a product bug, but consider aligning the desktop sidebar prefix to 'desktop' for testability (currently only mobile sidebar seems to expose that testid pattern)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only run)", "frontend": "100% (7/7 flows)"},
+  "test_credentials": "test@onestock.in / Test@12345 ; admin@onestock.in / OneStock#Admin2026 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Registered one throwaway user via UI: uitest_reg_1787030328@onestock.in — safe to purge alongside other uitest_/test_ accounts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reported 'Failed to fetch' bug is verified fixed. friendlyAuthError copy is now surfaced in AuthModal (auth-error) and AuthCallback toast. If retesting friendly-error, use page.route('**/api/auth/login', lambda r: r.abort()) then unroute for recovery. Admin sidebar Users item test: prefer get_by_text('Users', exact=True) or inspect the actual prefix — 'desktop-admin-users' testid returned 0 despite the item being rendered.",
+  "rca of the issue": "Original user report was a transient outage (all pod services restarted simultaneously ~44s uptime) causing the browser fetch to throw a TypeError('Failed to fetch'). No login backend defect. Fix by main agent surfaces a friendly copy instead of the raw browser error and keeps the modal open for retry; verified with page.route abort simulation and clean recovery on unroute."
+}

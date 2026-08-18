@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuth } from "@/auth/AuthContext";
+import { useAuth, friendlyAuthError } from "@/auth/AuthContext";
 
 export default function AuthModal({ open, mode = "login", onOpenChange, onAuth }) {
   const { login, register, googleLogin } = useAuth();
@@ -39,7 +39,7 @@ export default function AuthModal({ open, mode = "login", onOpenChange, onAuth }
       onOpenChange(false);
       onAuth?.(user);
     } catch (err) {
-      setError(err.message || "Authentication failed");
+      setError(friendlyAuthError(err));
     } finally {
       setBusy(false);
     }
