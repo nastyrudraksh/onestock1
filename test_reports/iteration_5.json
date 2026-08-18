@@ -1,0 +1,25 @@
+{
+  "summary": "Verified admin sign-in bug fix on preview URL. Backend /api/auth/login returns 200 for both clean 'admin@onestock.in' and messy '  Admin@OneStock.IN  ' (leading/trailing spaces + uppercase). Frontend E2E: Get Started -> AuthModal -> admin login lands on panel with 'Hello, Admin' greeting, 'Welcome back, Admin' toast, and Users nav item visible in sidebar. Users page lists admin@onestock.in and test@onestock.in. Messy-input login also succeeded end-to-end. Normal user login (test@onestock.in / Test@12345) works and correctly does NOT show Users nav (role gating). No wrong-password attempts were made against admin (to avoid lockout).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard (pre-auth/landing render)", "issues": ["Recharts warnings: chart container width/height reported as -1 during initial mount (harmless but noisy); consider setting min-width/min-height on ResponsiveContainer parent."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/pytest/auth_flows.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth.py login lockout is email-keyed (correct for k8s ingress) but there is no admin-safe backoff — 5 wrong attempts locks the real admin for 15 min. Consider exempting the seeded admin from lockout or adding an IP+email compound key.",
+    "Multiple 401s observed in console before login is expected (/api/auth/me probes) — could be silenced by treating 401 as unauthenticated state without logging error."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@onestock.in / OneStock#Admin2026 ; test@onestock.in / Test@12345 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. No throwaway uitest_ accounts created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug 'not able to sign in as admin' is resolved. Email is normalized via .strip().lower() on backend (register/login/forgot-password) and frontend AuthModal trims before submit. Verified against preview URL https://tradesense-hub-1.preview.emergentagent.com. Do NOT attempt >4 wrong passwords on admin@onestock.in — email-keyed 15 min lockout.",
+  "rca of the issue": "Original report was likely caused by (a) transient service-restart window during concurrent work, and/or (b) mobile keyboards inserting a trailing space / capitalizing the first letter of the email. Fix: backend normalizes body.email.strip().lower() in login/register/forgot-password; frontend AuthModal trims email/name before POST. Reproduction: POST /api/auth/login with '  Admin@OneStock.IN  ' + correct password -> 200 with role=admin. UI repro on preview URL also passes: greeting 'Hello, Admin', Users nav visible, users list contains admin + test user."
+}

@@ -34,7 +34,7 @@ export default function AuthModal({ open, mode = "login", onOpenChange, onAuth }
     setBusy(true);
     setError("");
     try {
-      const user = m === "signup" ? await register(name, email, password) : await login(email, password);
+      const user = m === "signup" ? await register(name.trim(), email.trim(), password) : await login(email.trim(), password);
       toast.success(m === "signup" ? `Account created — welcome, ${user.name}` : `Welcome back, ${user.name}`);
       onOpenChange(false);
       onAuth?.(user);

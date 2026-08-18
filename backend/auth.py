@@ -168,7 +168,7 @@ async def _record_fail(identifier: str):
 # ---------------- email/password endpoints ----------------
 @router.post("/register")
 async def register(body: RegisterIn, response: Response):
-    email = body.email.lower()
+    email = body.email.strip().lower()
     if await _db.users.find_one({"email": email}):
         raise HTTPException(status_code=409, detail="Email already registered")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
@@ -182,7 +182,7 @@ async def register(body: RegisterIn, response: Response):
 
 @router.post("/login")
 async def login(body: LoginIn, request: Request, response: Response):
-    email = body.email.lower()
+    email = body.email.strip().lower()
     # key the lockout by account email: behind the k8s ingress request.client.host is a
     # rotating internal pod IP, and X-Forwarded-For is client-spoofable — email is the
     # only reliable key (5 failed attempts -> 15 min lock on the account)
@@ -270,7 +270,7 @@ async def google_session(body: GoogleSessionIn, response: Response):
 # ---------------- password reset ----------------
 @router.post("/forgot-password")
 async def forgot_password(body: ForgotIn):
-    email = body.email.lower()
+    email = body.email.strip().lower()
     user = await _db.users.find_one({"email": email})
     if user:
         token = secrets.token_urlsafe(32)
@@ -307,6 +307,26 @@ async def list_users(request: Request):
     await require_admin(request)
     cursor = _db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1)
     return {"users": await cursor.to_list(length=500)}
+
+
+@router.get("/users/new")
+async def recent_users(request: Request, days: int = 7, limit: int = 100):
+    """Admin-only: list users created in the last `days` days (default 7)."""
+    await require_admin(request)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    # Find users with created_at >= cutoff
+    cursor = _db.users.find({"created_at": {"$gte": cutoff}}, {"_id": 0, "password_hash": 0}).sort("created_at", -1)
+    users = await cursor.to_list(length=limit)
+    # Normalize string timestamps to datetime objects if needed
+    for u in users:
+        ca = u.get("created_at")
+        if isinstance(ca, str):
+            try:
+                ca_dt = datetime.fromisoformat(ca)
+                u["created_at"] = ca_dt
+            except Exception:
+                pass
+    return {"users": users}
 
 
 # ---------------- startup: indexes + admin seed ----------------
